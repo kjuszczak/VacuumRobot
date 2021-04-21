@@ -8,7 +8,7 @@ from Flat import *
 
 # Initialize TCP parameters
 HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
-PORT = 65425        # Port to listen on (non-privileged ports are > 1023)
+PORT = 65424        # Port to listen on (non-privileged ports are > 1023)
 
 
 # Create TCP thread class
@@ -20,28 +20,24 @@ class TCPThread (threading.Thread):
 
     def run(self):
         # run socket
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind((HOST, PORT))
-            s.listen()
-            conn, addr = s.accept()
-            with conn:
-                print('Connected by', addr)
-                while True:
-                    data = conn.recv(1024)
-                    if not data:
-                        continue
-                    json_parameters = json.loads(data.decode("utf-8"))
-                    id_v = json_parameters['id']
-                    if id_v == 'flat':
-                        threadLock.acquire()
-                        flat.createFlat(json_parameters)
-                        threadLock.release()
-                    elif id_v == 'robot':
-                        threadLock.acquire()
-                        flat.updateParameters(json_parameters)
-                        threadLock.release()
-                    # text = 'Siema'
-                    # conn.sendall(bytes(text, encoding="utf-8"))
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.bind(('', 1100))
+            while True:
+                data, address = s.recvfrom(1024)
+                if not data:
+                    continue
+                json_parameters = json.loads(data.decode("utf-8"))
+                id_v = json_parameters['id']
+                if id_v == 'flat':
+                    threadLock.acquire()
+                    flat.createFlat(json_parameters)
+                    threadLock.release()
+                elif id_v == 'robot':
+                    threadLock.acquire()
+                    flat.updateParameters(json_parameters)
+                    threadLock.release()
+                # text = 'Siema'
+                # conn.sendall(bytes(text, encoding="utf-8"))
 
 
 # Create Visualization Thread class

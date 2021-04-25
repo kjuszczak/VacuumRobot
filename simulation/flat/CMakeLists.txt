@@ -1,0 +1,7 @@
+set(flat_files
+        ./db/creator.c
+        ./db/creator.h
+        ./db/jsonCreator.c
+        ./db/jsonCreator.h
+        )
+add_library(flat ${flat_files})

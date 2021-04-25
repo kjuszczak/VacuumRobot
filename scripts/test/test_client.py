@@ -2,7 +2,7 @@ import socket
 import sys
 import json
 
-HOST, PORT = '127.0.0.1', 65425
+HOST, PORT = '127.0.0.1', 65424
 
 data = '{' \
        '"x": 880,' \

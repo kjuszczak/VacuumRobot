@@ -23,7 +23,7 @@ class TCPThread (threading.Thread):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
             s.bind(('', 1100))
             while True:
-                data, address = s.recvfrom(1024)
+                data, address = s.recvfrom(10000)
                 if not data:
                     continue
                 json_parameters = json.loads(data.decode("utf-8"))

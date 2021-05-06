@@ -9,7 +9,7 @@
 #include <string.h>
 #include <json-c/json.h>
 
-#define MAXLEN 1000
+#define MAXLEN 4056
 
 typedef struct socket
 {

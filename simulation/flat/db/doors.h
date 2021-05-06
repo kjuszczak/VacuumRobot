@@ -8,6 +8,6 @@ typedef struct door
 
 typedef struct doors
 {
-    doorStruct* doors;
+    doorStruct** doors;
     uint16_t numOfDoors;
 } doorsStruct;

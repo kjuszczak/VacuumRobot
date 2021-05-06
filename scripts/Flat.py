@@ -44,6 +44,7 @@ class Flat:
         self.drawFlag = True
 
     def createWalls(self, json_parameters):
+        self.walls = Walls()
         walls = json_parameters['walls']
         for wall in walls:
             start_pos = (self.flat_x + int(wall['start_x'] / 2), self.flat_y + int(wall['start_y'] / 2))
@@ -58,6 +59,7 @@ class Flat:
             self.walls.addDoor(Door([start_pos, end_pos], WHITE, 3))
 
     def createFurnitures(self, json_parameters):
+        self.furnitures = Furnitures()
         furnitures = json_parameters['furnitures']
         for furniture in furnitures:
             rectangle_object = []
@@ -71,6 +73,7 @@ class Flat:
             self.furnitures.addFurniture(Furniture(rectangle_object, BROWN))
 
     def createGarbage(self, json_parameters):
+        self.garbages = Garbage()
         garbages = json_parameters['garbages']
         for garbage in garbages:
             x = self.flat_x + int(garbage['x'] / 2)

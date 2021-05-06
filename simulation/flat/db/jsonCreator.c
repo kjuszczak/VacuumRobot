@@ -52,7 +52,6 @@ void createFurnitures(json_object* jFurnitures, const furnitureStruct* furniture
 
 void createGarbages(json_object* jGarbages, const garbageStruct* garbageObj)
 {
-    printf("SIEMA\n");
     json_object *jGarbage = json_object_new_object();
     json_object *x = json_object_new_int(garbageObj->x);
     json_object *y = json_object_new_int(garbageObj->y);
@@ -84,7 +83,7 @@ void createFlatJson(const roomsStruct* roomsInFlat, json_object* jObj)
         }
         for(size_t d = 0; d < iRoom->doors->numOfDoors; d++)
         {
-            createDoors(jDoors, &iRoom->doors->doors[d]);
+            createDoors(jDoors, iRoom->doors->doors[d]);
         }
         for(size_t f = 0; f < iRoom->furnitures->numOfFurnitures; f++)
         {
@@ -92,7 +91,7 @@ void createFlatJson(const roomsStruct* roomsInFlat, json_object* jObj)
         }
         for(size_t g = 0; g < iRoom->garbages->numOfGarbages; g++)
         {
-            createGarbages(jGarbages, &iRoom->garbages->garbages[g]);
+            createGarbages(jGarbages, iRoom->garbages->garbages[g]);
         }
     }
     json_object_object_add(jObj, "walls", jWalls);

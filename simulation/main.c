@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 
 	jobjFlat = json_object_new_object();
 	createJsonObj(jobjFlat);
-	printf("jobj from str:\n---\n%s\n---\n", json_object_to_json_string_ext(jobjFlat, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY));
+	// printf("jobj from str:\n---\n%s\n---\n", json_object_to_json_string_ext(jobjFlat, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY));
 
 	tSocketData visSocketData = {1100, &visUdpMutex, jobjFlat};
 

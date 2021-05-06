@@ -8,6 +8,9 @@ typedef struct garbage
 
 typedef struct garbages
 {
-    garbageStruct* garbages;
+    garbageStruct** garbages;
     uint16_t numOfGarbages;
 } garbagesStruct;
+
+void allocateGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y);
+void deleteGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y);

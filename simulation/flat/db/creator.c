@@ -14,14 +14,10 @@ doorStruct door1 = {{110, 300}, {190,300}};
 doorStruct* doors1Array[1] = {&door1};
 doorsStruct doors1 = {doors1Array, 1};
 
-// garbageStruct garbage11 = {150, 150};
-// garbageStruct garbage12 = {20, 70};
-// garbageStruct* garbage1Array[2] = {&garbage11, &garbage12};
 garbagesStruct garbages1 = {NULL, 0};
 
 elementStruct element1[2] = {{200, 0, 50, 50}, {250, 0, 50, 70}};
-furnitureStruct furniture11 = {element1, 2};
-furnituresStruct furnitures1 = {&furniture11, 1};
+furnituresStruct furnitures1 = {NULL, 0};
 
 roomStruct room1 = {&walls1, &doors1, &garbages1, &furnitures1, 1};
 
@@ -112,7 +108,12 @@ roomStruct room7 = {&walls7, &doors7, &garbages7, &furnitures7, 7};
 roomStruct* roomsArray[7] = {&room1, &room2, &room3, &room4, &room5, &room6, &room7};
 roomsStruct roomsInFlat = {roomsArray, 7};
 
-void createJsonObj(json_object* jObj)
+void createFlatJsonObj(json_object* jObj)
 {
     createFlatJson(&roomsInFlat, jObj);
+}
+
+void createGarbageUpdateJson(json_object* jObj)
+{
+    createGarbageJson(&roomsInFlat, jObj);
 }

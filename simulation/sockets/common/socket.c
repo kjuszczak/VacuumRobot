@@ -25,17 +25,26 @@ void* tUdpThreadFunc(void *cookie)
 	socket_addr.sin_port = htons(socketData->port);
 	socket_addr.sin_addr.s_addr = INADDR_ANY;
 
-	pthread_mutex_lock(socketData->jsonMutex);
-    if (strcpy(buff, json_object_to_json_string(socketData->jObj)) == NULL)
-    {
-        fprintf(stderr, "Cannot copy json string to buffer\n");
-        return 0;
-    }
-	pthread_mutex_unlock(socketData->jsonMutex);
+	if (strcpy(buff, json_object_to_json_string(socketData->jFlatObj)) == NULL)
+	{
+		fprintf(stderr, "Cannot copy json string to buffer\n");
+		return 0;
+	}
+	sendto(my_socket, buff, strlen(buff), MSG_CONFIRM, (const struct sockaddr *) &socket_addr, sizeof(socket_addr)); 
 
-    /* Send a message to server */
-    sendto(my_socket, buff, strlen(buff), MSG_CONFIRM, (const struct sockaddr *) &socket_addr, sizeof(socket_addr)); 
+	while(1)
+	{
+		pthread_mutex_lock(socketData->jsonMutex);
+		if (strcpy(buff, json_object_to_json_string(socketData->jRobotObj)) == NULL)
+		{
+			fprintf(stderr, "Cannot copy json string to buffer\n");
+			return 0;
+		}
+		pthread_mutex_unlock(socketData->jsonMutex);
 
+		/* Send a message to server */
+		sendto(my_socket, buff, strlen(buff), MSG_CONFIRM, (const struct sockaddr *) &socket_addr, sizeof(socket_addr)); 
+	}
 	/* Clean up */
     close(my_socket); 
 

@@ -16,7 +16,8 @@ typedef struct socket
     /* data */
     uint16_t port;
     pthread_mutex_t* jsonMutex;
-    json_object* jObj;
+    json_object* jFlatObj;
+    json_object* jRobotObj;
 } tSocketData;
 
 /*

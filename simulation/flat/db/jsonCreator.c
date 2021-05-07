@@ -99,3 +99,16 @@ void createFlatJson(const roomsStruct* roomsInFlat, json_object* jObj)
     json_object_object_add(jObj, "furnitures", jFurnitures);
     json_object_object_add(jObj, "garbages", jGarbages);
 }
+
+void createGarbageJson(const roomsStruct* roomsInFlat, json_object* jObj)
+{
+    json_object *jGarbages = json_object_new_array();
+    for(size_t i = 0; i < roomsInFlat->numOfRooms; i++)
+    {
+        for(size_t j = 0; j < roomsInFlat->rooms[i]->garbages->numOfGarbages; j++)
+        {
+            createGarbages(jGarbages, roomsInFlat->rooms[i]->garbages->garbages[j]);
+        }
+    }
+    json_object_object_add(jObj, "garbages", jGarbages);
+}

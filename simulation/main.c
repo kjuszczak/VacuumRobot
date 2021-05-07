@@ -11,6 +11,7 @@
 
 #include "sockets/common/socket.h"
 #include "flat/db/creator.h"
+#include "robot/creator.h"
 
 /*
  * Mutex variables
@@ -41,16 +42,23 @@ int main(int argc, char *argv[])
 	pthread_attr_setschedpolicy(&aSimpleThreadAttr, SCHED_FIFO);
 
 	jobjFlat = json_object_new_object();
-	createJsonObj(jobjFlat);
+	createFlatJsonObj(jobjFlat);
 	// printf("jobj from str:\n---\n%s\n---\n", json_object_to_json_string_ext(jobjFlat, JSON_C_TO_STRING_SPACED | JSON_C_TO_STRING_PRETTY));
+	jobjRobot = json_object_new_object();
 
-	tSocketData visSocketData = {1100, &visUdpMutex, jobjFlat};
+	tSocketData visSocketData = {1100, &visUdpMutex, jobjFlat, jobjRobot};
+	pthread_mutex_lock(&visUdpMutex);
 
 	/* Create thread */
 	if ((status = pthread_create( &tSimpleThread, &aSimpleThreadAttr, tUdpThreadFunc, (void*) &visSocketData))) {
 		fprintf(stderr, "Cannot create thread.\n");
 		return 0;
 	}
+
+	usleep(2000000);
+	createRobotUpdateJson(jobjRobot);
+	createGarbageUpdateJson(jobjRobot);
+	pthread_mutex_unlock(&visUdpMutex);
 
 	/* Join (wait for) thread */
 	pthread_join(tSimpleThread, NULL);

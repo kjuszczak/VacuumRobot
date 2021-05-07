@@ -11,3 +11,5 @@ typedef struct walls
     wallStruct* walls;
     uint16_t numOfWalls;
 } wallsStruct;
+
+uint16_t getDistanceFromWall(const wallStruct* walls, int xDirectory, int yDirectory, uint16_t robotX, uint16_t robotY);

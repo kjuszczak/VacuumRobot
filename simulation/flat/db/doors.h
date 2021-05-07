@@ -11,3 +11,5 @@ typedef struct doors
     doorStruct** doors;
     uint16_t numOfDoors;
 } doorsStruct;
+
+uint8_t isDoorOnWay(const doorsStruct* doors, int xDirectory, int yDirectory, uint16_t robotX, uint16_t robotY);

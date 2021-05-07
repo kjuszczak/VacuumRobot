@@ -5,6 +5,7 @@ import json
 HOST, PORT = '127.0.0.1', 65424
 
 data = '{' \
+	   '"id": "robot",'\
        '"x": 880,' \
        '"y": 880,' \
        '"angle": -45,' \

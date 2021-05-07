@@ -98,16 +98,7 @@ class Flat:
         y = json_parameters['y']
         angle = json_parameters['angle']
         self.updateRobotCoordinates(x, y, angle)
-        isAddGarbages = json_parameters['add garbages']
-        if isAddGarbages:
-            self.createGarbage(json_parameters)
-        isDeleteGarbages = json_parameters['delete garbages']
-        if isDeleteGarbages:
-            array_of_garbages = json_parameters['garbages']
-            for garbage in array_of_garbages:
-                x = int(garbage['x'] / 2)
-                y = int(garbage['y'] / 2)
-                self.deleteGarbage(x, y)
+        self.createGarbage(json_parameters)
 
     def drawFlat(self, surface):
         surface.fill(WHITE)

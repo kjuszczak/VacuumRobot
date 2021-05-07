@@ -6,10 +6,15 @@ include_directories(flat)
 link_directories(flat)
 add_subdirectory(flat)
 
+include_directories(robot)
+link_directories(robot)
+add_subdirectory(robot)
+
 add_executable(sim_main main.c)
 
 target_link_libraries(sim_main sockets)
 target_link_libraries(sim_main flat)
+target_link_libraries(sim_main robot)
 
 target_link_libraries(sim_main pthread)
 target_link_libraries(sim_main json-c)

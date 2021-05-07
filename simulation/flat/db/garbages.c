@@ -78,3 +78,14 @@ void deleteGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y)
     free(garbages->garbages);
     garbages->garbages = tmpGarbages;
 }
+
+void deleteGarbageIfVacuumed(garbagesStruct* garbages, uint16_t x, uint16_t y)
+{
+    for (size_t i = 0; i < garbages->numOfGarbages; i++)
+    {
+        if ((garbages->garbages[i]->x == x) && (garbages->garbages[i]->x == y))
+        {
+            deleteGarbage(garbages, x, y);
+        }
+    }
+}

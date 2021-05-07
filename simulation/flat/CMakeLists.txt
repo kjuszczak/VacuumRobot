@@ -4,5 +4,7 @@ set(flat_files
         ./db/jsonCreator.c
         ./db/jsonCreator.h
         ./db/garbages.c
+        ./db/walls.c
+        ./db/doors.c
         )
 add_library(flat ${flat_files})

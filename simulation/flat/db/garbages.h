@@ -14,3 +14,4 @@ typedef struct garbages
 
 void allocateGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y);
 void deleteGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y);
+void deleteGarbageIfVacuumed(garbagesStruct* garbages, uint16_t x, uint16_t y);

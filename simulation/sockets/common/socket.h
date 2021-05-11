@@ -1,3 +1,6 @@
+#ifndef SOCKET_H
+#define SOCKET_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -15,14 +18,13 @@ typedef struct socket
 {
     /* data */
     uint16_t port;
-    pthread_mutex_t* jsonMutex;
     json_object* jFlatObj;
     json_object* jRobotObj;
 } tSocketData;
 
-/*
- * Thread functions
- */
 /* UDP communication with Visualization process */
-void* tUdpThreadFunc(void *);
+int sendFlatJson(tSocketData *socketData);
+int sendRobotJson(tSocketData *socketData);
 /******************************************************/
+
+#endif // SOCKET_H

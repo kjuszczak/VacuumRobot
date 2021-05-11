@@ -1,5 +1,8 @@
 #include "stdint.h"
 #include "walls.h"
+#ifndef ROOMS_H
+#define ROOMS_H
+
 #include "doors.h"
 #include "garbages.h"
 #include "furnitures.h"
@@ -20,5 +23,6 @@ typedef struct rooms
     uint16_t numOfRooms;
 } roomsStruct;
 
-void createRooms(void);
-void createRoom(void);
+uint8_t getCurrentRoomWhereRobotIs(const roomsStruct* rooms, uint16_t x, uint16_t y);
+
+#endif

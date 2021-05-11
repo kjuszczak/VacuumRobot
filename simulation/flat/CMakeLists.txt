@@ -6,5 +6,7 @@ set(flat_files
         ./db/garbages.c
         ./db/walls.c
         ./db/doors.c
+        ./db/rooms.h
+        ./db/rooms.c
         )
 add_library(flat ${flat_files})

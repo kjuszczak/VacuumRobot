@@ -2,8 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 
-void allocateGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y)
+void allocateGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y, uint16_t weight)
 {
     if (garbages == NULL)
     {
@@ -16,9 +17,11 @@ void allocateGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y)
     }
     newGarbage->x = x;
     newGarbage->y = y;
+    newGarbage->weight = weight;
+    pthread_mutex_lock(garbages->garbagesMutex);
     uint16_t newNumOfGarbages = garbages->numOfGarbages + 1;
     garbageStruct** tmpGarbages = malloc(newNumOfGarbages * sizeof(garbageStruct*));
-    if (!tmpGarbages) 
+    if (!tmpGarbages)
     {
         fprintf(stderr, "Cannot allocate.\n");
     }
@@ -30,6 +33,7 @@ void allocateGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y)
     free(garbages->garbages);
     garbages->garbages = tmpGarbages;
     garbages->garbages[garbages->numOfGarbages - 1] = newGarbage;
+    pthread_mutex_unlock(garbages->garbagesMutex);
 }
 
 void deleteGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y)
@@ -38,6 +42,7 @@ void deleteGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y)
     {
         return;
     }
+    pthread_mutex_lock(garbages->garbagesMutex);
     size_t indexToDelete = garbages->numOfGarbages;
     for (size_t i = 0; i < garbages->numOfGarbages; i++)
     {
@@ -77,10 +82,12 @@ void deleteGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y)
     garbages->numOfGarbages--;
     free(garbages->garbages);
     garbages->garbages = tmpGarbages;
+    pthread_mutex_unlock(garbages->garbagesMutex);
 }
 
 void deleteGarbageIfVacuumed(garbagesStruct* garbages, uint16_t x, uint16_t y)
 {
+    pthread_mutex_lock(garbages->garbagesMutex);
     for (size_t i = 0; i < garbages->numOfGarbages; i++)
     {
         if ((garbages->garbages[i]->x == x) && (garbages->garbages[i]->x == y))
@@ -88,4 +95,5 @@ void deleteGarbageIfVacuumed(garbagesStruct* garbages, uint16_t x, uint16_t y)
             deleteGarbage(garbages, x, y);
         }
     }
+    pthread_mutex_unlock(garbages->garbagesMutex);
 }

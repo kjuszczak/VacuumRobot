@@ -1,3 +1,6 @@
+#ifndef FURNITURES_H
+#define FURNITURES_H
+
 #include "stdint.h"
 
 typedef struct element
@@ -19,3 +22,5 @@ typedef struct furnitures
     furnitureStruct* furnitures;
     uint16_t numOfFurnitures;
 } furnituresStruct;
+
+#endif // FURNITURES_H

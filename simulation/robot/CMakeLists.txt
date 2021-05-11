@@ -1,7 +1,10 @@
 set(robot_files
-        ./robot.h
         ./creator.h
         ./creator.c
+        ./robot.h
+        ./robot.c
+        ./sensors/sensor.h
+        ./sensors/sensor.c
         ./visualization/jsonCreator.c
         ./visualization/jsonCreator.h
         )

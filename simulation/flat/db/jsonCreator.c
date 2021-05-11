@@ -105,10 +105,12 @@ void createGarbageJson(const roomsStruct* roomsInFlat, json_object* jObj)
     json_object *jGarbages = json_object_new_array();
     for(size_t i = 0; i < roomsInFlat->numOfRooms; i++)
     {
+        pthread_mutex_lock(roomsInFlat->rooms[i]->garbages->garbagesMutex);
         for(size_t j = 0; j < roomsInFlat->rooms[i]->garbages->numOfGarbages; j++)
         {
             createGarbages(jGarbages, roomsInFlat->rooms[i]->garbages->garbages[j]);
         }
+        pthread_mutex_unlock(roomsInFlat->rooms[i]->garbages->garbagesMutex);
     }
     json_object_object_add(jObj, "garbages", jGarbages);
 }

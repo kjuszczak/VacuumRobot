@@ -1,3 +1,6 @@
+#ifndef DOORS_H
+#define DOORS_H
+
 #include "stdint.h"
 
 typedef struct door
@@ -13,3 +16,5 @@ typedef struct doors
 } doorsStruct;
 
 uint8_t isDoorOnWay(const doorsStruct* doors, int xDirectory, int yDirectory, uint16_t robotX, uint16_t robotY);
+
+#endif // DOORS_H

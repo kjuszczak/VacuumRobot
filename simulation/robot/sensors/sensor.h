@@ -11,6 +11,11 @@ typedef struct sensor
     pthread_mutex_t* sensorMutex;
 } sensorStruct;
 
-void changeDirection(sensorStruct* sensor, int angle);
+void changeDirection(sensorStruct** sensors, int angle);
+
+void changeDirectionFor0(sensorStruct** sensors);
+void changeDirectionFor90(sensorStruct** sensors);
+void changeDirectionFor180(sensorStruct** sensors);
+void changeDirectionFor270(sensorStruct** sensors);
 
 #endif

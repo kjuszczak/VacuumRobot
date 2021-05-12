@@ -6,19 +6,19 @@ float getDistanceFromWall(const wallsStruct* wallsInRoom, int xDirectory, int yD
 {
     if ((xDirectory == 1) && (yDirectory == 0))
     {
-        return sqrt((wallsInRoom->walls[3].startXY[0] - robotX) * (wallsInRoom->walls[3].startXY[0] - robotX));
+        return sqrt((wallsInRoom->walls[2].startXY[0] - robotX) * (wallsInRoom->walls[2].startXY[0] - robotX));
     }
     else if ((xDirectory == -1) && (yDirectory == 0))
     {
-        return sqrt((wallsInRoom->walls[1].startXY[0] - robotX) * (wallsInRoom->walls[1].startXY[0] - robotX));
+        return sqrt((wallsInRoom->walls[0].startXY[0] - robotX) * (wallsInRoom->walls[0].startXY[0] - robotX));
     }
     else if ((xDirectory == 0) && (yDirectory == 1))
     {
-        return sqrt((wallsInRoom->walls[2].startXY[1] - robotY) * (wallsInRoom->walls[2].startXY[1] - robotY));
+        return sqrt((wallsInRoom->walls[1].startXY[1] - robotY) * (wallsInRoom->walls[1].startXY[1] - robotY));
     }
     else if ((xDirectory == 0) && (yDirectory == -1))
     {
-        return sqrt((wallsInRoom->walls[4].startXY[1] - robotY) * (wallsInRoom->walls[4].startXY[1] - robotY));
+        return sqrt((wallsInRoom->walls[3].startXY[1] - robotY) * (wallsInRoom->walls[3].startXY[1] - robotY));
     }
     fprintf(stderr, "Wrong directory.\n");
     return 0;

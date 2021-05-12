@@ -11,15 +11,21 @@
 #include <errno.h>
 #include <mqueue.h>
 
-tSocketData* socketVisData;
+#define MAX_NUMBER_OF_SENSORS 4
 
 /* Mutex variables */
 pthread_mutex_t robotUdpMutex = PTHREAD_MUTEX_INITIALIZER;
+
 pthread_mutex_t sensorMutex1 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t sensorMutex2 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t sensorMutex3 = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t sensorMutex4 = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t leftWheelMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t rightWheelMutex = PTHREAD_MUTEX_INITIALIZER;
 /******************************************************/
+
+/* Global variables */
 
 /* SENSORS */
 sensorStruct sensor1 = {1, 0, -1, &sensorMutex1};
@@ -28,12 +34,34 @@ sensorStruct sensor3 = {0, 1, -1, &sensorMutex3};
 sensorStruct sensor4 = {0, -1, -1, &sensorMutex4};
 sensorStruct* sensors[4] = {&sensor1, &sensor2, &sensor3, &sensor4};
 
+/* WHEELS - max speed 20 [cm/s] */
+motorStruct leftWheel = {0, 0, 0, -255, &leftWheelMutex};
+motorStruct rightWheel = {0, 0, 0, 255, &rightWheelMutex};
+motorStruct* wheels[2] = {&leftWheel, &rightWheel};
+
 /* ROBOT */
-robotStruct robot = {0, 500, 150, -90, sensors, &robotUdpMutex};
+robotStruct robot = {0, 120, 130, 0, sensors, wheels, &robotUdpMutex};
+
+/* THREADS VARIABLES */
+tSocketData* socketVisData = NULL;
+robotThreadStruct robotDataForThreads = {&robot, NULL};
+robotThreadStruct sensorsDataForThreads[MAX_NUMBER_OF_SENSORS] = {
+	{&robotDataForThreads, 0},
+	{&robotDataForThreads, 1},
+	{&robotDataForThreads, 2},
+	{&robotDataForThreads, 3}
+};
+/******************************************************/
+
+void init(tSocketData *socketData, roomsStruct* rooms)
+{
+	socketVisData = socketData;
+	robotDataForThreads.rooms = rooms;
+}
 
 void createThreadsForRobotSimulation(tSocketData *socketData, roomsStruct* rooms)
 {
-    socketVisData = socketData;
+	init(socketData, rooms);
     createTimer();
 }
 
@@ -69,7 +97,7 @@ int createTimer()
 	timerSpecStruct.it_value.tv_sec = 1;
 	timerSpecStruct.it_value.tv_nsec = 0;
 	timerSpecStruct.it_interval.tv_sec = 0;
-	timerSpecStruct.it_interval.tv_nsec = 50000000;
+	timerSpecStruct.it_interval.tv_nsec = SIMULATION_SAMPLE_TIME * 1000000000;
 
 	/* Change timer parameters and run */
   	timer_settime( timerVar, 0, &timerSpecStruct, NULL);
@@ -77,7 +105,22 @@ int createTimer()
 
 void *tTimerThreadFunc(void *cookie)
 {
-    pthread_t first, second;
+	static int counter = 0;
+	
+	createRobotThreads();
+	createJsonSenderThread();
+}
+
+int createRobotThreads()
+{
+	createSensorsThreads();
+	createWheelsThread();
+	createRoomIdUpdaterThread();
+}
+
+int createSensorsThreads()
+{
+	pthread_t sensorsThreads[MAX_NUMBER_OF_SENSORS], sensorsMeasurementSenderThreads[MAX_NUMBER_OF_SENSORS];
 	/* Scheduling policy: FIFO or RR */
 	int policy = SCHED_FIFO;
 	/* Structure of other thread parameters */
@@ -87,24 +130,68 @@ void *tTimerThreadFunc(void *cookie)
 	param.sched_priority = sched_get_priority_max(policy);
 	pthread_setschedparam( pthread_self(), policy, &param);
 
-	static int counter = 0;
-	
-	pthread_create(&first, NULL, tUpdateRobotParametersThreadFunc, NULL);
-	pthread_detach(first);
+	for (size_t i = 0; i < MAX_NUMBER_OF_SENSORS; i++)
+	{
+		pthread_create(&sensorsThreads[i], NULL, tUpdateSensorsThreadFunc, (void *) &sensorsDataForThreads[i]);
+		pthread_detach(sensorsThreads[i]);
 
-    pthread_create(&second, NULL, tRobotJsonUpdateThreadFunc, (void*) socketVisData);
-    pthread_detach(second);
+		pthread_create(&sensorsMeasurementSenderThreads[i], NULL, tSendSensorMeasurementThreadFunc, (void *) &sensorsDataForThreads[i]);
+		pthread_detach(sensorsMeasurementSenderThreads[i]);
+	}
 }
 
+int createWheelsThread()
+{
+	pthread_t wheelsThread;
+	/* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Set new thread priority */
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam( pthread_self(), policy, &param);
+
+	pthread_create(&wheelsThread, NULL, tSimulateWheelsThreadFunc, (void *) &robotDataForThreads);
+	pthread_detach(wheelsThread);
+}
+
+int createRoomIdUpdaterThread()
+{
+	pthread_t roomIdUpdaterThread;
+	/* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Set new thread priority */
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam( pthread_self(), policy, &param);
+
+	pthread_create(&roomIdUpdaterThread, NULL, tUpdateRoomIdThreadFunc, (void *) &robotDataForThreads);
+	pthread_detach(roomIdUpdaterThread);
+}
+
+int createJsonSenderThread()
+{
+    pthread_t updateRobotJson;
+	/* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Set new thread priority */
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam( pthread_self(), policy, &param);
+
+    pthread_create(&updateRobotJson, NULL, tRobotJsonUpdateThreadFunc, NULL);
+    pthread_detach(updateRobotJson);
+}
+
+/* THREADS FUNCTION */
 void* tRobotJsonUpdateThreadFunc(void *cookie)
 {
-    tSocketData* threadData = (tSocketData*)cookie;
-    createRobotJson(&robot, threadData->jRobotObj);
-    createGarbageUpdateJson(threadData->jRobotObj);
-    sendRobotJson(threadData);
-}
-
-void *tUpdateRobotParametersThreadFunc(void *cookie)
-{
-    updateRobotParameters(&robot, 2, 2, 1);
+    createRobotJson(&robot, socketVisData->jRobotObj);
+    createGarbageUpdateJson(socketVisData->jRobotObj);
+    sendRobotJson(socketVisData);
 }

@@ -8,16 +8,23 @@
 #include <json-c/json.h>
 #include <pthread.h>
 
+void init(tSocketData *socketData, roomsStruct* rooms);
+
 void createThreadsForRobotSimulation(tSocketData *socketData, roomsStruct* rooms);
-int createThreadForUpdatingJson(tSocketData *socketData);
+
 int createTimer();
+
+int createRobotThreads();
+int createJsonSenderThread();
+
+int createSensorsThreads();
+int createWheelsThread();
+int createRoomIdUpdaterThread();
 
 /*
  * Threads functions
  */
 void *tTimerThreadFunc(void *cookie);
-
 void *tRobotJsonUpdateThreadFunc(void *cookie);
-void *tUpdateRobotParametersThreadFunc(void *cookie);
 
 #endif // ROBOT_CREATOR_H

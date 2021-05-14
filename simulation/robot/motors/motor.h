@@ -6,13 +6,15 @@
 
 typedef struct motor
 {
-    float angularVelocity;  // [rad/s]
-    float linearVelocity;   // [m/s]
-    float current;          // [A]
+    double angularVelocity;  // [rad/s]
+    double linearVelocity;   // [m/s]
+    double current;          // [A]
     int pwm;
+    int angle;
     pthread_mutex_t* motorMutex;
 } motorStruct;
 
-void calculateVelocity(motorStruct* motor, float diamater, float maxAngularVelocity);
+void calculateVelocity(motorStruct* motor, double diamater, double maxAngularVelocity);
+void calculateMotorAngle(motorStruct* motor, double time);
 
 #endif // MOTOR_H

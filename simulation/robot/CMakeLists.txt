@@ -5,6 +5,8 @@ set(robot_files
         ./robot.c
         ./sensors/sensor.h
         ./sensors/sensor.c
+        ./encoder/encoder.h
+        ./encoder/encoder.c
         ./motors/motor.h
         ./motors/motor.c
         ./visualization/jsonCreator.c

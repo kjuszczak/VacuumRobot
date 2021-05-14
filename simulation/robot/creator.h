@@ -18,13 +18,12 @@ int createRobotThreads();
 int createJsonSenderThread();
 
 int createSensorsThreads();
-int createWheelsThread();
+int createEncodersThreads();
 int createRoomIdUpdaterThread();
 
 /*
  * Threads functions
  */
-void *tTimerThreadFunc(void *cookie);
 void *tRobotJsonUpdateThreadFunc(void *cookie);
 
 #endif // ROBOT_CREATOR_H

@@ -3,12 +3,15 @@
 
 #include <pthread.h>
 
+#define MAX_NUMBER_OF_SENSORS 4
+
 typedef struct sensor
 {
     int xDirectory;
     int yDirectory;
-    float distanceFromObject;
+    double distanceFromObject;
     pthread_mutex_t* sensorMutex;
+    pthread_barrier_t* sensorBarrier;
 } sensorStruct;
 
 void changeDirection(sensorStruct** sensors, int angle);

@@ -11,8 +11,6 @@
 #include <errno.h>
 #include <mqueue.h>
 
-#define MAX_NUMBER_OF_SENSORS 4
-
 /* Mutex variables */
 pthread_mutex_t robotUdpMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -23,33 +21,63 @@ pthread_mutex_t sensorMutex4 = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t leftWheelMutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t rightWheelMutex = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t leftEncoderMutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t rightEncoderMutex = PTHREAD_MUTEX_INITIALIZER;
+/******************************************************/
+
+/* Threads barriers */
+pthread_barrier_t sensorBarrier1;
+pthread_barrier_t sensorBarrier2;
+pthread_barrier_t sensorBarrier3;
+pthread_barrier_t sensorBarrier4;
+
+pthread_barrier_t roomIdUpdaterBarrier;
+
+pthread_barrier_t leftEncoderBarrier;
+pthread_barrier_t rightEncoderBarrier;
+/******************************************************/
+
+/* Mqueue variable */
+mqd_t outputMQueue;
+/* Mqueue attributes structure */
+struct	mq_attr outputMQueueAttr;
 /******************************************************/
 
 /* Global variables */
 
 /* SENSORS */
-sensorStruct sensor1 = {1, 0, -1, &sensorMutex1};
-sensorStruct sensor2 = {-1, 0, -1, &sensorMutex2};
-sensorStruct sensor3 = {0, 1, -1, &sensorMutex3};
-sensorStruct sensor4 = {0, -1, -1, &sensorMutex4};
-sensorStruct* sensors[4] = {&sensor1, &sensor2, &sensor3, &sensor4};
+sensorStruct sensor1 = {1, 0, -1, &sensorMutex1, &sensorBarrier1};
+sensorStruct sensor2 = {-1, 0, -1, &sensorMutex2, &sensorBarrier2};
+sensorStruct sensor3 = {0, 1, -1, &sensorMutex3, &sensorBarrier3};
+sensorStruct sensor4 = {0, -1, -1, &sensorMutex4, &sensorBarrier4};
+sensorStruct* sensors[MAX_NUMBER_OF_SENSORS] = {&sensor1, &sensor2, &sensor3, &sensor4};
 
 /* WHEELS - max speed 20 [cm/s] */
-motorStruct leftWheel = {0, 0, 0, -255, &leftWheelMutex};
-motorStruct rightWheel = {0, 0, 0, 255, &rightWheelMutex};
+motorStruct leftWheel = {0, 0, 0, 255, 0, &leftWheelMutex};
+motorStruct rightWheel = {0, 0, 0, -255, 0, &rightWheelMutex};
 motorStruct* wheels[2] = {&leftWheel, &rightWheel};
 
+/* ENCODERS */
+encoderStruct leftEncoder = {0, 0, 0, 0, 0, &leftEncoderMutex, &leftEncoderBarrier};
+encoderStruct rightEncoder = {0, 0, 0, 0, 0, &rightEncoderMutex, &rightEncoderBarrier};
+encoderStruct* encoders[2] = {&leftEncoder, &rightEncoder};
+
 /* ROBOT */
-robotStruct robot = {0, 120, 130, 0, sensors, wheels, &robotUdpMutex};
+robotStruct robot = {0, 120, 130, 0, sensors, wheels, encoders, &robotUdpMutex, &roomIdUpdaterBarrier};
 
 /* THREADS VARIABLES */
 tSocketData* socketVisData = NULL;
-robotThreadStruct robotDataForThreads = {&robot, NULL};
-robotThreadStruct sensorsDataForThreads[MAX_NUMBER_OF_SENSORS] = {
+robotThreadStruct robotDataForThreads = {&robot, NULL, &outputMQueue};
+sensorThreadStruct sensorsDataForThreads[MAX_NUMBER_OF_SENSORS] = {
 	{&robotDataForThreads, 0},
 	{&robotDataForThreads, 1},
 	{&robotDataForThreads, 2},
 	{&robotDataForThreads, 3}
+};
+encoderThreadStruct encodersDataForThreads[2] = {
+	{&robotDataForThreads, 0},
+	{&robotDataForThreads, 1}
 };
 /******************************************************/
 
@@ -57,12 +85,36 @@ void init(tSocketData *socketData, roomsStruct* rooms)
 {
 	socketVisData = socketData;
 	robotDataForThreads.rooms = rooms;
+
+	/* Set Message Queue size */
+	outputMQueueAttr.mq_maxmsg = 128;
+	outputMQueueAttr.mq_msgsize = sizeof(int);
+
+	/* Create Message Queue */
+	if ((outputMQueue = mq_open("/robotOutput", O_CREAT | O_RDWR, 777, &outputMQueueAttr)) == -1) {
+		fprintf(stderr, "Creation of the mqueue failed.\n");
+		return;
+	}
+
+	/* Initialize barrier */
+	for (size_t i = 0; i < MAX_NUMBER_OF_SENSORS; i++)
+	{
+		pthread_barrier_init(sensors[i]->sensorBarrier, NULL, 2);
+	}
+	pthread_barrier_init(&roomIdUpdaterBarrier, NULL, 2);
+	for (size_t i = 0; i < 2; i++)
+	{
+		pthread_barrier_init(encoders[i]->encoderBarrier, NULL, 2);
+	}
 }
 
 void createThreadsForRobotSimulation(tSocketData *socketData, roomsStruct* rooms)
 {
 	init(socketData, rooms);
+
     createTimer();
+	createRobotThreads();
+	createJsonSenderThread();
 }
 
 int createTimer()
@@ -77,6 +129,8 @@ int createTimer()
     timer_t	timerVar;
     /* Signal variable */
     struct sigevent timerEvent;
+	/* Thread function data */
+	union sigval threadData;
 
     /* Initialize threads attributes structures for FIFO scheduling */
 	pthread_attr_init(&aWorkerThreadAttr);
@@ -84,7 +138,8 @@ int createTimer()
 	
 	/* Initialize event to send signal SIGRTMAX */
 	timerEvent.sigev_notify = SIGEV_THREAD;
-    timerEvent.sigev_notify_function = tTimerThreadFunc;
+    timerEvent.sigev_notify_function = tMainRobotPeriodicThreadFunc;
+	timerEvent.sigev_value.sival_ptr = (void*) &robotDataForThreads;
 	timerEvent.sigev_notify_attributes = &aWorkerThreadAttr;
 
 	/* Create timer */
@@ -103,18 +158,10 @@ int createTimer()
   	timer_settime( timerVar, 0, &timerSpecStruct, NULL);
 }
 
-void *tTimerThreadFunc(void *cookie)
-{
-	static int counter = 0;
-	
-	createRobotThreads();
-	createJsonSenderThread();
-}
-
 int createRobotThreads()
 {
 	createSensorsThreads();
-	createWheelsThread();
+	createEncodersThreads();
 	createRoomIdUpdaterThread();
 }
 
@@ -134,15 +181,12 @@ int createSensorsThreads()
 	{
 		pthread_create(&sensorsThreads[i], NULL, tUpdateSensorsThreadFunc, (void *) &sensorsDataForThreads[i]);
 		pthread_detach(sensorsThreads[i]);
-
-		pthread_create(&sensorsMeasurementSenderThreads[i], NULL, tSendSensorMeasurementThreadFunc, (void *) &sensorsDataForThreads[i]);
-		pthread_detach(sensorsMeasurementSenderThreads[i]);
 	}
 }
 
-int createWheelsThread()
+int createEncodersThreads()
 {
-	pthread_t wheelsThread;
+	pthread_t encodersThreads[2];
 	/* Scheduling policy: FIFO or RR */
 	int policy = SCHED_FIFO;
 	/* Structure of other thread parameters */
@@ -152,8 +196,11 @@ int createWheelsThread()
 	param.sched_priority = sched_get_priority_max(policy);
 	pthread_setschedparam( pthread_self(), policy, &param);
 
-	pthread_create(&wheelsThread, NULL, tSimulateWheelsThreadFunc, (void *) &robotDataForThreads);
-	pthread_detach(wheelsThread);
+	for (size_t i = 0; i < 2; i++)
+	{
+		pthread_create(&encodersThreads[i], NULL, tUpdateEncoderThreadFunc, (void *) &encodersDataForThreads[i]);
+		pthread_detach(encodersThreads[i]);
+	}
 }
 
 int createRoomIdUpdaterThread()
@@ -191,7 +238,15 @@ int createJsonSenderThread()
 /* THREADS FUNCTION */
 void* tRobotJsonUpdateThreadFunc(void *cookie)
 {
-    createRobotJson(&robot, socketVisData->jRobotObj);
-    createGarbageUpdateJson(socketVisData->jRobotObj);
-    sendRobotJson(socketVisData);
+	int outputResult = 1;
+
+	for (;;)
+	{
+		/* Wait until something will appears in queue */
+		mq_receive(outputMQueue, (char *)&outputResult, sizeof(int), NULL);
+
+		createRobotJson(&robot, socketVisData->jRobotObj);
+		createGarbageUpdateJson(socketVisData->jRobotObj);
+		sendRobotJson(socketVisData);
+	}
 }

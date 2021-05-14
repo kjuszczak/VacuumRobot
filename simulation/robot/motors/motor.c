@@ -1,7 +1,10 @@
 #include "motor.h"
 #include <stdio.h>
 
-void calculateVelocity(motorStruct* motor, float diamater, float maxAngularVelocity)
+#define PI 3.14159265
+#define DEGREE_PROP 180 / PI
+
+void calculateVelocity(motorStruct* motor, double diamater, double maxAngularVelocity)
 {
     if (motor == NULL)
     {
@@ -23,4 +26,10 @@ void calculateVelocity(motorStruct* motor, float diamater, float maxAngularVeloc
         motor->angularVelocity = -maxAngularVelocity;
         motor->linearVelocity = -maxAngularVelocity * (diamater / 2);
     }
+}
+
+void calculateMotorAngle(motorStruct* motor, double time)
+{
+    motor->angle += (motor->angularVelocity * DEGREE_PROP) * time;
+    motor->angle = motor->angle % 360;
 }

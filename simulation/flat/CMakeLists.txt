@@ -1,12 +1,12 @@
 set(flat_files
-        ./db/creator.c
-        ./db/creator.h
-        ./db/jsonCreator.c
-        ./db/jsonCreator.h
-        ./db/garbages.c
-        ./db/walls.c
-        ./db/doors.c
-        ./db/rooms.h
-        ./db/rooms.c
+        ./creator.c
+        ./creator.h
+        ./visualization/jsonCreator.c
+        ./visualization/jsonCreator.h
+        ./rooms/garbages/garbages.c
+        ./rooms/walls/walls.c
+        ./rooms/doors/doors.c
+        ./rooms/rooms.h
+        ./rooms/rooms.c
         )
 add_library(flat ${flat_files})

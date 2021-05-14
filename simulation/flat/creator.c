@@ -1,8 +1,9 @@
 #include "creator.h"
-#include "jsonCreator.h"
 
 #include <stdio.h>
 #include <pthread.h>
+
+#include "visualization/jsonCreator.h"
 
 /* I ROOM */
 wallStruct walls11[4] = {

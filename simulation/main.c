@@ -9,8 +9,8 @@
 #include <string.h>
 #include <json-c/json.h>
 
-#include "sockets/common/socket.h"
-#include "flat/db/creator.h"
+#include "sockets/socket.h"
+#include "flat/creator.h"
 #include "robot/creator.h"
 
 /*

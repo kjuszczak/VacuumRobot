@@ -1,5 +1,5 @@
 set(sockets_files
-        ./common/socket.c
-        ./common/socket.h
+        ./socket.c
+        ./socket.h
         )
 add_library(sockets ${sockets_files})

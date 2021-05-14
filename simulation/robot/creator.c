@@ -1,15 +1,14 @@
 #include "creator.h"
-#include "visualization/jsonCreator.h"
-#include "../flat/db/creator.h"
-#include "../sockets/common/socket.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <signal.h>
 #include <time.h>
 #include <errno.h>
 #include <mqueue.h>
+
+#include "visualization/jsonCreator.h"
+#include "../flat/creator.h"
 
 /* Mutex variables */
 pthread_mutex_t robotUdpMutex = PTHREAD_MUTEX_INITIALIZER;

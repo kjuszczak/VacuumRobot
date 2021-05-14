@@ -2,11 +2,12 @@
 #define ROBOT_CREATOR_H
 
 #include "robot.h"
-#include "../flat/db/rooms.h"
-#include "../sockets/common/socket.h"
 
 #include <json-c/json.h>
 #include <pthread.h>
+
+#include "../flat/rooms/rooms.h"
+#include "../sockets/socket.h"
 
 void init(tSocketData *socketData, roomsStruct* rooms);
 

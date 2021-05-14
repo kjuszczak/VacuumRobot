@@ -1,11 +1,12 @@
-#include "stdint.h"
-#include "walls.h"
 #ifndef ROOMS_H
 #define ROOMS_H
 
-#include "doors.h"
-#include "garbages.h"
-#include "furnitures.h"
+#include <stdint.h>
+
+#include "walls/walls.h"
+#include "doors/doors.h"
+#include "garbages/garbages.h"
+#include "furnitures/furnitures.h"
 
 typedef struct room
 {

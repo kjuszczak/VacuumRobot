@@ -4,7 +4,7 @@
 #include "sensors/sensor.h"
 #include "motors/motor.h"
 #include "encoder/encoder.h"
-#include "../flat/db/rooms.h"
+#include "../flat/rooms/rooms.h"
 
 #include "stdint.h"
 #include <pthread.h>

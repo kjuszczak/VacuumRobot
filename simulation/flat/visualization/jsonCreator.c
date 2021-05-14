@@ -1,4 +1,5 @@
 #include "jsonCreator.h"
+
 #include <stdio.h>
 
 void createWalls(json_object* jWalls, const wallStruct* wallObj)

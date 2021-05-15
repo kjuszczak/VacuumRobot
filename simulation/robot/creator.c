@@ -9,6 +9,8 @@
 
 #include "visualization/jsonCreator.h"
 #include "../flat/creator.h"
+#include "../io/input/input.h"
+#include "../io/output/output.h"
 
 /* Mutex variables */
 pthread_mutex_t robotUdpMutex = PTHREAD_MUTEX_INITIALIZER;
@@ -35,6 +37,9 @@ pthread_barrier_t roomIdUpdaterBarrier;
 
 pthread_barrier_t leftEncoderBarrier;
 pthread_barrier_t rightEncoderBarrier;
+
+pthread_barrier_t sensorsOutputWriterBarrier;
+pthread_barrier_t encodersOutputWriterBarrier;
 /******************************************************/
 
 /* Mqueue variable */
@@ -63,21 +68,30 @@ encoderStruct rightEncoder = {0, 0, 0, 0, 0, &rightEncoderMutex, &rightEncoderBa
 encoderStruct* encoders[2] = {&leftEncoder, &rightEncoder};
 
 /* ROBOT */
-robotStruct robot = {0, 120, 130, 0, sensors, wheels, encoders, &robotUdpMutex, &roomIdUpdaterBarrier};
+robotStruct robot = {0, 120, 130, 0, sensors, wheels, encoders, &robotUdpMutex, &roomIdUpdaterBarrier, &sensorsOutputWriterBarrier, &encodersOutputWriterBarrier};
 
 /* THREADS VARIABLES */
 tSocketData* socketVisData = NULL;
+
 robotThreadStruct robotDataForThreads = {&robot, NULL, &outputMQueue};
+
 sensorThreadStruct sensorsDataForThreads[MAX_NUMBER_OF_SENSORS] = {
 	{&robotDataForThreads, 0},
 	{&robotDataForThreads, 1},
 	{&robotDataForThreads, 2},
 	{&robotDataForThreads, 3}
 };
+
 encoderThreadStruct encodersDataForThreads[2] = {
 	{&robotDataForThreads, 0},
 	{&robotDataForThreads, 1}
 };
+
+sensorsOutputThreadStruct sensorsOutputThread;
+sensorsOutputSimProcessStruct sensorsOutputSimProcessForThreads = {&sensorsOutputThread, &robot};
+
+encodersOutputThreadStruct encodersOutputThread;
+encodersOutputSimProcessStruct encodersOutputSimProcessForThreads = {&encodersOutputThread, &robot};
 /******************************************************/
 
 void init(tSocketData *socketData, roomsStruct* rooms)
@@ -105,6 +119,8 @@ void init(tSocketData *socketData, roomsStruct* rooms)
 	{
 		pthread_barrier_init(encoders[i]->encoderBarrier, NULL, 2);
 	}
+	pthread_barrier_init(&sensorsOutputWriterBarrier, NULL, 5); // 4x sensors
+	pthread_barrier_init(&encodersOutputWriterBarrier, NULL, 3); // 2x sensors
 }
 
 void createThreadsForRobotSimulation(tSocketData *socketData, roomsStruct* rooms)
@@ -162,6 +178,9 @@ int createRobotThreads()
 	createSensorsThreads();
 	createEncodersThreads();
 	createRoomIdUpdaterThread();
+	createRobotInputReaderThread();
+	createSensorsOutputWriterThread();
+	createEncodersOutputWriterThread();
 }
 
 int createSensorsThreads()
@@ -216,6 +235,54 @@ int createRoomIdUpdaterThread()
 
 	pthread_create(&roomIdUpdaterThread, NULL, tUpdateRoomIdThreadFunc, (void *) &robotDataForThreads);
 	pthread_detach(roomIdUpdaterThread);
+}
+
+int createRobotInputReaderThread()
+{
+	pthread_t inputWheelsPwmReader;
+	/* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Set new thread priority */
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam( pthread_self(), policy, &param);
+
+	pthread_create(&inputWheelsPwmReader, NULL, tReadWheelsPwmInputThreadFunc, (void *) &robot);
+	pthread_detach(inputWheelsPwmReader);
+}
+
+int createSensorsOutputWriterThread()
+{
+	pthread_t sensorsOutputWriter;
+	/* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Set new thread priority */
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam( pthread_self(), policy, &param);
+
+	pthread_create(&sensorsOutputWriter, NULL, tWriteSensorsOutputThreadFunc, (void *) &sensorsOutputSimProcessForThreads);
+	pthread_detach(sensorsOutputWriter);
+}
+
+int createEncodersOutputWriterThread()
+{
+	pthread_t encodersOutputWriter;
+	/* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Set new thread priority */
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam( pthread_self(), policy, &param);
+
+	pthread_create(&encodersOutputWriter, NULL, tWriteEncodersOutputThreadFunc, (void *) &encodersOutputSimProcessForThreads);
+	pthread_detach(encodersOutputWriter);
 }
 
 int createJsonSenderThread()

@@ -22,6 +22,10 @@ int createSensorsThreads();
 int createEncodersThreads();
 int createRoomIdUpdaterThread();
 
+int createRobotInputReaderThread();
+int createSensorsOutputWriterThread();
+int createEncodersOutputWriterThread();
+
 /*
  * Threads functions
  */

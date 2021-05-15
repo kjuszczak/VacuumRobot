@@ -1,10 +1,12 @@
 #ifndef ROBOT_INPUT_H
 #define ROBOT_INPUT_H
 
-typedef struct robotInput
+#include <semaphore.h>
+
+typedef struct wheelsPwmInput
 {
     int leftWheelPwm;
     int rightWheelPwm;
-} robotInputStruct;
+} wheelsPwmInputStruct;
 
 #endif // ROBOT_INPUT_H

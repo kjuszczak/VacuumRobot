@@ -25,6 +25,8 @@ typedef struct robot
     encoderStruct** encoders;
     pthread_mutex_t* robotMutex;
     pthread_barrier_t* roomIdUpdaterBarrier;
+    pthread_barrier_t* sensorsOutputWriterBarrier;
+    pthread_barrier_t* encodersOutputWriterBarrier;
 } robotStruct;
 
 /* Threads structs */
@@ -48,7 +50,7 @@ typedef struct encoderThread
 } encoderThreadStruct;
 /******************************************************/
 
-/* Threads structs */
+/* Threads functions */
 void* tMainRobotPeriodicThreadFunc(void *cookie);
 
 void* tUpdateSensorsThreadFunc(void *cookie);

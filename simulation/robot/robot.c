@@ -41,6 +41,8 @@ void* tUpdateSensorsThreadFunc(void *cookie)
         pthread_mutex_lock(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorMutex);
         sensorData->robotThread->robot->sensors[sensorData->sensorId]->distanceFromObject = distanceFromObject;
         pthread_mutex_unlock(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorMutex);
+
+        pthread_barrier_wait(sensorData->robotThread->robot->sensorsOutputWriterBarrier);
     }
 }
 
@@ -54,6 +56,7 @@ void* tUpdateEncoderThreadFunc(void *cookie)
         updateEncoder(
             encoderData->robotThread->robot->encoders[encoderData->encoderId],
             encoderData->robotThread->robot->wheels[encoderData->encoderId]->angle);
+        pthread_barrier_wait(encoderData->robotThread->robot->encodersOutputWriterBarrier);
     }
 }
 

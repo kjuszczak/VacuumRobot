@@ -29,6 +29,7 @@ tSocketData visSocketData;
 
 int main(int argc, char *argv[])
 {
+	printf("Simulation main\n");
 	jobjFlat = json_object_new_object();
 	jobjRobot = json_object_new_object();
 
@@ -42,8 +43,8 @@ int main(int argc, char *argv[])
 
 	createThreadsForRobotSimulation(&visSocketData, getFlatPtr());
 
-	/* Wait for thread*/
-	while(getc(stdin)=='q') {}
+	for (;;) {}
 
+	printf("Simulation main exits\n");
 	return EXIT_SUCCESS;
 }

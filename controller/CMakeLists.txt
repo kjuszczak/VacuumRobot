@@ -1,0 +1,1 @@
+add_executable(robot_controller ${CMAKE_CURRENT_SOURCE_DIR}/controller/main.c)

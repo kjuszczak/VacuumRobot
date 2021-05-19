@@ -2,14 +2,13 @@
 
 #include <stdio.h>
 
-void updateEncoder(encoderStruct* enc, int angle)
+void updateEncoder(encoderStruct* enc, double angle)
 {
     if (enc == NULL)
     {
         fprintf(stderr, "Encoder is null\n");
         return;
     }
-
     if (angle - enc->lastAngle >= 1)
     {
         incrementEncoder(enc);

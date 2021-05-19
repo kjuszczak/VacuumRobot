@@ -12,7 +12,7 @@
 
 /* Robot parameters */
 
-#define SIMULATION_SAMPLE_TIME 0.005  // [s]
+#define SIMULATION_SAMPLE_TIME 0.0005  // [s]
 
 typedef struct robot
 {

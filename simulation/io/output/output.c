@@ -32,12 +32,6 @@ int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputD
 		return 0;
     }
 
-    //  Truncate share memory /* DELETE IT */
-    if (ftruncate(fdShm, sizeof (sensorsOutputStruct)) == -1) {
-        fprintf(stderr, "Cannot truncate shared memory.\n");
-		return 0;
-    }
-
     // Map shared memory
     if ((sensorsOutputDataThread->sensorsOutputData = mmap(NULL, sizeof (sensorsOutputStruct), PROT_READ | PROT_WRITE, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
         fprintf(stderr, "Cannot map shared memory.\n");
@@ -64,12 +58,6 @@ int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutp
     // Get shared memory 
     if ((fdShm = shm_open("/encoders-shared-mem", O_RDWR | O_CREAT, 0660)) == -1) {
         fprintf(stderr, "Cannot create shared memory.\n");
-		return 0;
-    }
-
-    //  Truncate share memory /* DELETE IT */
-    if (ftruncate(fdShm, sizeof (encodersOutputStruct)) == -1) {
-        fprintf(stderr, "Cannot truncate shared memory.\n");
 		return 0;
     }
 
@@ -129,8 +117,6 @@ void* tWriteSensorsOutputThreadFunc(void *cookie)
 		return NULL;
     }
 
-    sem_post(sensorsOutputDataThread->sensorsOutputThread->mutexSem); // DELETE IT
-
     for (;;)
     {
         pthread_barrier_wait(sensorsOutputDataThread->robot->sensorsOutputWriterBarrier);
@@ -162,8 +148,6 @@ void* tWriteEncodersOutputThreadFunc(void *cookie)
         fprintf(stderr, "Cannot create robot output writer.\n");
 		return NULL;
     }
-
-    sem_post(encodersOutputDataThread->encodersOutputThread->mutexSem); // DELETE IT
 
     for (;;)
     {

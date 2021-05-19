@@ -1,7 +1,7 @@
 #ifndef SIMULATION_ROBOT_OUTPUT_H
 #define SIMULATION_ROBOT_OUTPUT_H
 
-#include "../../pscommon/robotOutput.h"
+#include "../../../pscommon/robotOutput.h"
 #include "../robot/robot.h"
 
 typedef struct sensorsOutputSimProcess

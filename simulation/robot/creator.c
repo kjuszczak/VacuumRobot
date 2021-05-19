@@ -294,7 +294,7 @@ int createJsonSenderThread()
 	struct sched_param param;
 
 	/* Set new thread priority */
-	param.sched_priority = sched_get_priority_max(policy);
+	param.sched_priority = sched_get_priority_min(policy);
 	pthread_setschedparam( pthread_self(), policy, &param);
 
     pthread_create(&updateRobotJson, NULL, tRobotJsonUpdateThreadFunc, NULL);

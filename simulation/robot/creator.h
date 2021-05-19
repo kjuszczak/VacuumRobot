@@ -3,9 +3,6 @@
 
 #include "robot.h"
 
-#include <json-c/json.h>
-#include <pthread.h>
-
 #include "../flat/rooms/rooms.h"
 #include "../sockets/socket.h"
 

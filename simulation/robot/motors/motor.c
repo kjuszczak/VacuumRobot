@@ -31,5 +31,5 @@ void calculateVelocity(motorStruct* motor, double diamater, double maxAngularVel
 void calculateMotorAngle(motorStruct* motor, double time)
 {
     motor->angle += (motor->angularVelocity * DEGREE_PROP) * time;
-    motor->angle = motor->angle % 360;
+    motor->angle = motor->angle < 360 &&  motor->angle > -360? motor->angle : 0;
 }

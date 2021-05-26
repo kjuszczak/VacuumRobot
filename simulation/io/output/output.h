@@ -25,4 +25,6 @@ void fillBufferWithEncoders(encodersOutputStruct* buffer, robotStruct* robot);
 void* tWriteSensorsOutputThreadFunc(void *cookie);
 void* tWriteEncodersOutputThreadFunc(void *cookie);
 
+int unmapShmForSensors(sensorsOutputSimProcessStruct* sensorsOutputDataThread);
+
 #endif // SIMULATION_ROBOT_OUTPUT_H

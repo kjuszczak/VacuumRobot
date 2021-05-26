@@ -5,14 +5,13 @@
 #include "motors/motor.h"
 #include "encoder/encoder.h"
 #include "../flat/rooms/rooms.h"
+#include "../../pscommon/constants.h"
 
 #include "stdint.h"
 #include <pthread.h>
 #include <mqueue.h>
 
 /* Robot parameters */
-
-#define SIMULATION_SAMPLE_TIME 0.0005  // [s]
 
 typedef struct robot
 {
@@ -27,6 +26,7 @@ typedef struct robot
     pthread_barrier_t* roomIdUpdaterBarrier;
     pthread_barrier_t* sensorsOutputWriterBarrier;
     pthread_barrier_t* encodersOutputWriterBarrier;
+    pthread_barrier_t* wheelsPwmInputReaderBarrier;
 } robotStruct;
 
 /* Threads structs */
@@ -66,6 +66,6 @@ void* tSendEncoderMeasurementThreadFunc(void *cookie);
 
 /* leftWheelVelocity, rightWheelVelocity - [cm/s], time - [s] */
 void updateRobotParameters(robotStruct* robot, double leftWheelVelocity, double rightWheelVelocity, double time);
-void updateSensorsDirectionParameters(robotStruct* robot);
+void updateSensorsAnglesParameters(robotStruct* robot);
 
 #endif //ROBOT_H

@@ -4,14 +4,12 @@
 #include <math.h>
 #include <pthread.h>
 
-#define PI 3.14159265
-#define RADIAN_PROP PI / 180
-
-#define MAX_ANGULAR_VELOCITY 6.15   // [rad/s]
-#define ROBOT_DIAMATER_CM 38        // [cm]
-#define WHEEL_DIAMATER_M 0.065      // [m]
+#include "../io/input/input.h"
+#include "../../pscommon/constants.h"
 
 int robotOutput = 1;
+
+uint8_t timerCounter = 0;
 
 void* tUpdateSensorsThreadFunc(void *cookie)
 {
@@ -27,16 +25,15 @@ void* tUpdateSensorsThreadFunc(void *cookie)
         pthread_mutex_unlock(sensorData->robotThread->robot->robotMutex);
 
         pthread_mutex_lock(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorMutex);
-        int xDirectory = sensorData->robotThread->robot->sensors[sensorData->sensorId]->xDirectory;
-        int yDirectory = sensorData->robotThread->robot->sensors[sensorData->sensorId]->yDirectory;
+        double angle = sensorData->robotThread->robot->sensors[sensorData->sensorId]->angle;
         pthread_mutex_unlock(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorMutex);
 
         double distanceFromObject = getDistanceFromWall(
             sensorData->robotThread->rooms->rooms[sensorData->robotThread->robot->roomId]->walls,
-            xDirectory,
-            yDirectory,
+            sensorData->robotThread->rooms->rooms[sensorData->robotThread->robot->roomId]->doors,
             x,
-            y);
+            y,
+            angle);
 
         pthread_mutex_lock(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorMutex);
         sensorData->robotThread->robot->sensors[sensorData->sensorId]->distanceFromObject = distanceFromObject;
@@ -81,23 +78,6 @@ void* tUpdateRoomIdThreadFunc(void *cookie)
     }
 }
 
-void* tSendSensorMeasurementThreadFunc(void *cookie)
-{
-    double highLevelTime;
-    sensorThreadStruct* sensorData = (sensorThreadStruct*)cookie;
-
-    pthread_mutex_lock(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorMutex);
-    double distance = sensorData->robotThread->robot->sensors[sensorData->sensorId]->distanceFromObject;
-    pthread_mutex_unlock(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorMutex);
-
-    // printf("Karolki: tSendSensorMeasurementThreadFunc: sensorId:%u, distance:%f\n", sensorData->sensorId, distance);
-
-    if (distance <= 200)
-    {
-        highLevelTime = (distance * 1000 * 2) / 34;
-    }
-}
-
 /* Input - [2xPWM], Output - [4xSensors, 2xEncoder] */
 void* tMainRobotPeriodicThreadFunc(void *cookie)
 {
@@ -112,6 +92,20 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
 
     robotThreadStruct* robotThread = (robotThreadStruct*)cookie;
     double linearVelocity[2];
+
+    if (timerCounter == 1)
+    {
+        timerCounter = 0;
+        for (size_t i = 0; i < 2; i++)
+        {
+            pthread_barrier_wait(robotThread->robot->encoders[i]->encoderBarrier);
+        }
+        return 0;
+    }
+    timerCounter++;
+
+    pthread_barrier_wait(robotThread->robot->wheelsPwmInputReaderBarrier);
+
     for (size_t i = 0; i < 2; i++)
     {
         calculateVelocity(robotThread->robot->wheels[i], WHEEL_DIAMATER_M, MAX_ANGULAR_VELOCITY);
@@ -119,7 +113,7 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
         linearVelocity[i] = robotThread->robot->wheels[i]->linearVelocity * 100; // [cm]
     }
     updateRobotParameters(robotThread->robot, linearVelocity[0], linearVelocity[1], SIMULATION_SAMPLE_TIME);
-    updateSensorsDirectionParameters(robotThread->robot);
+    updateSensorsAnglesParameters(robotThread->robot);
 
     for (size_t i = 0; i < MAX_NUMBER_OF_SENSORS; i++)
     {
@@ -144,31 +138,32 @@ void updateRobotParameters(robotStruct* robot, double leftWheelVelocity, double 
     if (leftWheelVelocity == rightWheelVelocity)
     {
         pthread_mutex_lock(robot->robotMutex);
-        robot->x += cos(robot->angle * RADIAN_PROP) * leftWheelVelocity * time;
-        robot->y += -sin(robot->angle * RADIAN_PROP) * leftWheelVelocity * time;
+        robot->x += time * leftWheelVelocity * cos(robot->angle * RADIAN_PROP);
+        robot->y += time * leftWheelVelocity * -sin(robot->angle * RADIAN_PROP);
         pthread_mutex_unlock(robot->robotMutex);
     }
-    else if (-leftWheelVelocity == rightWheelVelocity)
+    else if (leftWheelVelocity < 0 && rightWheelVelocity > 0)
     {
         pthread_mutex_lock(robot->robotMutex);
-        robot->angle += (250 / (ROBOT_DIAMATER_CM / 2)) * time; // 250 == (rightWheelVelocity - leftWheelVelocity)
+        robot->angle += (time * (250 / (ROBOT_DIAMATER_CM / 2))); // 250 == (rightWheelVelocity - leftWheelVelocity)
+        robot->angle = robot->angle < 360 ? robot->angle : 0;
         pthread_mutex_unlock(robot->robotMutex);
     }
-    else if (leftWheelVelocity == -rightWheelVelocity)
+    else if (leftWheelVelocity > 0 && rightWheelVelocity < 0)
     {
         pthread_mutex_lock(robot->robotMutex);
-        robot->angle += (250 / (ROBOT_DIAMATER_CM / 2)) * time; // 250 == (leftWheelVelocity - rightWheelVelocity)
+        robot->angle -= time * (250 / (ROBOT_DIAMATER_CM / 2)); // 250 == (leftWheelVelocity - rightWheelVelocity)
+        robot->angle = robot->angle > -360 ? robot->angle : 0;
         pthread_mutex_unlock(robot->robotMutex);
     }
-    // printf("Karolki: updateRobotParameters: leftWheelVelocity:%f, rightWheelVelocity:%f, x:%f, y:%f, angle:%f\n",
-    //         leftWheelVelocity, rightWheelVelocity, robot->x, robot->y, robot->angle);
+    // printf("robot->x:%lf, robot->y:%lf, robot->angle:%lf\n", robot->x, robot->y, robot->angle);
 }
 
-void updateSensorsDirectionParameters(robotStruct* robot)
+void updateSensorsAnglesParameters(robotStruct* robot)
 {
     double angle;
     pthread_mutex_lock(robot->robotMutex);
     angle = robot->angle;
     pthread_mutex_unlock(robot->robotMutex);
-    changeDirection(robot->sensors, angle);
+    updateAngles(robot->sensors, angle);
 }

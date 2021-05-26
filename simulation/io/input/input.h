@@ -4,13 +4,8 @@
 #include "../../pscommon/robotInput.h"
 #include "../robot/robot.h"
 
-typedef struct wheelsPwmInputSimProcess
-{
-    wheelsPwmInputStruct* wheelsPwmInputData;
-    robotStruct* robot;
-} wheelsPwmInputSimProcessStruct;
-
 void fillBufferWithWheelsPwm(wheelsPwmInputStruct* buffer, robotStruct* robot);
+int createWheelsPwmInputFifo();
 
 void* tReadWheelsPwmInputThreadFunc(void *cookie);
 

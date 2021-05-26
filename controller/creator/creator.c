@@ -5,11 +5,14 @@
 #include <signal.h>
 #include <time.h>
 
+#include "../io/input/input.h"
 #include "../io/output/output.h"
-#include "../../pscommon/robotOutput.h"
 
 sensorsOutputThreadStruct sensorsOutputDataThread;
 encodersOutputThreadStruct encodersOutputDataThread;
+wheelsPwmInputStruct wheelsPwm = {0, 0};
+
+uint32_t TEMP = 0;
 
 void createThreadsForController()
 {
@@ -39,6 +42,7 @@ int createTimer()
 	
 	/* Initialize event to send signal SIGRTMAX */
 	timerEvent.sigev_notify = SIGEV_THREAD;
+	timerEvent.sigev_signo = SIGUSR2;
     timerEvent.sigev_notify_function = tMainControllerPeriodicThreadFunc;
 	timerEvent.sigev_notify_attributes = &aWorkerThreadAttr;
 
@@ -62,4 +66,9 @@ void *tMainControllerPeriodicThreadFunc(void *cookie)
 {
     readSensors(&sensorsOutputDataThread);
 	readEncoders(&encodersOutputDataThread);
+
+	wheelsPwm.leftWheelPwm = 255;
+	wheelsPwm.rightWheelPwm = 255;
+
+	writeWheelsPwmToFifo(&wheelsPwm);
 }

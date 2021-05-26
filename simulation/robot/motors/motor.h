@@ -10,7 +10,7 @@ typedef struct motor
     double linearVelocity;   // [m/s]
     double current;          // [A]
     int pwm;
-    double angle;
+    int angle;
     pthread_mutex_t* motorMutex;
 } motorStruct;
 

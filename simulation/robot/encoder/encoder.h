@@ -10,14 +10,15 @@ typedef struct encoder
 {
     uint8_t sigA;
     uint8_t sigB;
-    uint8_t lastSigA;
     uint8_t counter;
-    double lastAngle;
+    int lastAngle;
+    uint8_t mode;
+    uint8_t updateSignals;
     pthread_mutex_t* encoderMutex;
     pthread_barrier_t* encoderBarrier;
 } encoderStruct;
 
-void updateEncoder(encoderStruct* enc, double angle);
+void updateEncoder(encoderStruct* enc, int angle);
 void updateSigB(encoderStruct* enc, uint8_t* sigB);
 void incrementEncoder(encoderStruct* enc);
 void decrementEncoder(encoderStruct* enc);

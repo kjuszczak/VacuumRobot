@@ -7,6 +7,7 @@
 #include "../sockets/socket.h"
 
 void init(tSocketData *socketData, roomsStruct* rooms);
+void clean();
 
 void createThreadsForRobotSimulation(tSocketData *socketData, roomsStruct* rooms);
 

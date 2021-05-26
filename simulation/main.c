@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
 /* Exit signal handler function */
 void exit_handler(int sig)
 {
+	clean();
 	printf("Simulation main exits\n");
     exit(EXIT_SUCCESS);
 }

@@ -62,10 +62,21 @@ int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutp
     }
 
     // Map shared memory
-    if ((encodersOutputDataThread->encodersOutputData = mmap(NULL, sizeof (encodersOutputStruct), PROT_READ | PROT_WRITE, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
+    if ((encodersOutputDataThread->encodersOutputData = mmap(NULL, sizeof (encodersOutputStruct), PROT_WRITE, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
         fprintf(stderr, "Cannot map shared memory.\n");
 		return 0;
     }
+}
+
+int unmapShmForSensors(sensorsOutputSimProcessStruct* sensorsOutputDataThread)
+{
+    // Unmap shared memory
+    if (munmap(sensorsOutputDataThread->sensorsOutputThread->sensorsOutputData, sizeof (sensorsOutputThreadStruct)) == -1) {
+        fprintf(stderr, "Cannot truncate shared memmory.\n");
+		return 0;
+    }
+    
+    return 0;
 }
 
 void fillBufferWithSensors(sensorsOutputStruct* buffer, robotStruct* robot)
@@ -120,7 +131,7 @@ void* tWriteSensorsOutputThreadFunc(void *cookie)
     for (;;)
     {
         pthread_barrier_wait(sensorsOutputDataThread->robot->sensorsOutputWriterBarrier);
-        
+
         //Fill buffer
         fillBufferWithSensors(&buffer, sensorsOutputDataThread->robot);
 

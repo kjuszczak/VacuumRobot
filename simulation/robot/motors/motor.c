@@ -1,8 +1,7 @@
 #include "motor.h"
 #include <stdio.h>
 
-#define PI 3.14159265
-#define DEGREE_PROP 180 / PI
+#include "../../pscommon/constants.h"
 
 void calculateVelocity(motorStruct* motor, double diamater, double maxAngularVelocity)
 {
@@ -26,10 +25,15 @@ void calculateVelocity(motorStruct* motor, double diamater, double maxAngularVel
         motor->angularVelocity = -maxAngularVelocity;
         motor->linearVelocity = -maxAngularVelocity * (diamater / 2);
     }
+    else
+    {
+        motor->angularVelocity = 0;
+        motor->linearVelocity = 0;
+    }
 }
 
 void calculateMotorAngle(motorStruct* motor, double time)
 {
-    motor->angle += (motor->angularVelocity * DEGREE_PROP) * time;
+    motor->angle += (int)(time * (motor->angularVelocity * DEGREE_PROP));
     motor->angle = motor->angle < 360 &&  motor->angle > -360? motor->angle : 0;
 }

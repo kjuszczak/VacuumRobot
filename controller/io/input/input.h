@@ -1,8 +1,9 @@
-#ifndef CONTROLLER_INPUT_H
-#define CONTROLLER_INPUT_H
+#ifndef CONTROLLER_ROBOT_INPUT_H
+#define CONTROLLER_ROBOT_INPUT_H
 
-#include "../../../pscommon/robotOutput.h"
+#include "../../../pscommon/robotInput.h"
 
+int writeWheelsPwmToFifo(wheelsPwmInputStruct* wheelsPwm);
+void* tWriteWheelsPwmInputThreadFunc(void *cookie);
 
-
-#endif // CONTROLLER_INPUT_H
+#endif // CONTROLLER_ROBOT_INPUT_H

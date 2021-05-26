@@ -40,6 +40,8 @@ pthread_barrier_t rightEncoderBarrier;
 
 pthread_barrier_t sensorsOutputWriterBarrier;
 pthread_barrier_t encodersOutputWriterBarrier;
+
+pthread_barrier_t wheelsPwmInputReaderBarrier;
 /******************************************************/
 
 /* Mqueue variable */
@@ -51,24 +53,33 @@ struct	mq_attr outputMQueueAttr;
 /* Global variables */
 
 /* SENSORS */
-sensorStruct sensor1 = {1, 0, -1, &sensorMutex1, &sensorBarrier1};
-sensorStruct sensor2 = {-1, 0, -1, &sensorMutex2, &sensorBarrier2};
-sensorStruct sensor3 = {0, 1, -1, &sensorMutex3, &sensorBarrier3};
-sensorStruct sensor4 = {0, -1, -1, &sensorMutex4, &sensorBarrier4};
+sensorStruct sensor1 = {-1, 0, &sensorMutex1, &sensorBarrier1};
+sensorStruct sensor2 = {-1, 0, &sensorMutex2, &sensorBarrier2};
+sensorStruct sensor3 = {-1, 0, &sensorMutex3, &sensorBarrier3};
+sensorStruct sensor4 = {-1, 0, &sensorMutex4, &sensorBarrier4};
 sensorStruct* sensors[MAX_NUMBER_OF_SENSORS] = {&sensor1, &sensor2, &sensor3, &sensor4};
 
 /* WHEELS - max speed 20 [cm/s] */
-motorStruct leftWheel = {0, 0, 0, 255, 0, &leftWheelMutex};
-motorStruct rightWheel = {0, 0, 0, -255, 0, &rightWheelMutex};
+motorStruct leftWheel = {0, 0, 0, 0, 0, &leftWheelMutex};
+motorStruct rightWheel = {0, 0, 0, 0, 0, &rightWheelMutex};
 motorStruct* wheels[2] = {&leftWheel, &rightWheel};
 
 /* ENCODERS */
-encoderStruct leftEncoder = {0, 0, 0, 0, 0, &leftEncoderMutex, &leftEncoderBarrier};
-encoderStruct rightEncoder = {0, 0, 0, 0, 0, &rightEncoderMutex, &rightEncoderBarrier};
+encoderStruct leftEncoder = {0, 0, 0, 0, 0, 0, &leftEncoderMutex, &leftEncoderBarrier};
+encoderStruct rightEncoder = {0, 0, 0, 0, 0, 0, &rightEncoderMutex, &rightEncoderBarrier};
 encoderStruct* encoders[2] = {&leftEncoder, &rightEncoder};
 
 /* ROBOT */
-robotStruct robot = {0, 120, 130, 0, sensors, wheels, encoders, &robotUdpMutex, &roomIdUpdaterBarrier, &sensorsOutputWriterBarrier, &encodersOutputWriterBarrier};
+robotStruct robot = {0,
+					 22, 22, 0, 
+					 sensors, 
+					 wheels, 
+					 encoders, 
+					 &robotUdpMutex, 
+					 &roomIdUpdaterBarrier, 
+					 &sensorsOutputWriterBarrier, 
+					 &encodersOutputWriterBarrier,
+					 &wheelsPwmInputReaderBarrier};
 
 /* THREADS VARIABLES */
 tSocketData* socketVisData = NULL;
@@ -121,6 +132,12 @@ void init(tSocketData *socketData, roomsStruct* rooms)
 	}
 	pthread_barrier_init(&sensorsOutputWriterBarrier, NULL, 5); // 4x sensors
 	pthread_barrier_init(&encodersOutputWriterBarrier, NULL, 3); // 2x sensors
+	pthread_barrier_init(&wheelsPwmInputReaderBarrier, NULL, 2);
+}
+
+void clean()
+{
+	unmapShmForSensors(&sensorsOutputSimProcessForThreads);
 }
 
 void createThreadsForRobotSimulation(tSocketData *socketData, roomsStruct* rooms)
@@ -153,6 +170,7 @@ int createTimer()
 	
 	/* Initialize event to send signal SIGRTMAX */
 	timerEvent.sigev_notify = SIGEV_THREAD;
+	timerEvent.sigev_signo = SIGUSR1;
     timerEvent.sigev_notify_function = tMainRobotPeriodicThreadFunc;
 	timerEvent.sigev_value.sival_ptr = (void*) &robotDataForThreads;
 	timerEvent.sigev_notify_attributes = &aWorkerThreadAttr;
@@ -167,7 +185,7 @@ int createTimer()
 	timerSpecStruct.it_value.tv_sec = 1;
 	timerSpecStruct.it_value.tv_nsec = 0;
 	timerSpecStruct.it_interval.tv_sec = 0;
-	timerSpecStruct.it_interval.tv_nsec = SIMULATION_SAMPLE_TIME * 1000000000;
+	timerSpecStruct.it_interval.tv_nsec = (SIMULATION_SAMPLE_TIME / 2) * 1000000000;
 
 	/* Change timer parameters and run */
   	timer_settime( timerVar, 0, &timerSpecStruct, NULL);

@@ -10,6 +10,16 @@
 #include <sys/mman.h>
 #include <pthread.h>
 
+#include "../../pscommon/constants.h"
+
+uint8_t lastLeftSigA = 0;
+uint8_t lastRightSigA = 0;
+int leftCounter = 0;
+int rightCounter = 0;
+int leftAngle = 0;
+int rightAngle = 0;
+
+
 int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputDataThread)
 {
     int fdShm;
@@ -27,7 +37,7 @@ int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputD
     }
     
     // Get shared memory 
-    if ((fdShm = shm_open("/sensors-shared-mem", O_RDWR | O_CREAT, 0660)) == -1) {
+    if ((fdShm = shm_open("/sensors-shared-mem", O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1) {
         fprintf(stderr, "Cannot create shared memory.\n");
 		return 0;
     }
@@ -64,7 +74,7 @@ int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutp
     }
     
     // Get shared memory 
-    if ((fdShm = shm_open("/encoders-shared-mem", O_RDWR | O_CREAT, 0660)) == -1) {
+    if ((fdShm = shm_open("/encoders-shared-mem", O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1) {
         fprintf(stderr, "Cannot create shared memory.\n");
 		return 0;
     }
@@ -76,7 +86,7 @@ int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutp
     }
 
     // Map shared memory
-    if ((encodersOutputDataThread->encodersOutputData = mmap(NULL, sizeof (encodersOutputStruct), PROT_READ | PROT_WRITE, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
+    if ((encodersOutputDataThread->encodersOutputData = mmap(NULL, sizeof (encodersOutputStruct), PROT_READ, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
         fprintf(stderr, "Cannot map shared memory.\n");
 		return 0;
     }
@@ -88,6 +98,8 @@ void readSensors(sensorsOutputThreadStruct* sensorsOutput)
 {
     sensorsOutputStruct buffer;
 
+    sem_wait(sensorsOutput->spoolSem);
+
     // Enter critcal section
     sem_wait(sensorsOutput->mutexSem);
 
@@ -96,15 +108,6 @@ void readSensors(sensorsOutputThreadStruct* sensorsOutput)
 
     // Leave critical section
     sem_post(sensorsOutput->mutexSem);
-
-    // Increment the spool
-    sem_post(sensorsOutput->spoolSem);
-
-    // printf("Controller: Sensor1:%.5lf, Sensor2:%.5lf, Sensor3:%.5lf, Sensor4:%.5lf\n",
-    //         buffer.sensors[0],
-    //         buffer.sensors[1],
-    //         buffer.sensors[2],
-    //         buffer.sensors[3]);
 }
 
 void readEncoders(encodersOutputThreadStruct* encodersOutputDataThread)
@@ -123,11 +126,54 @@ void readEncoders(encodersOutputThreadStruct* encodersOutputDataThread)
     // Increment the spool
     sem_post(encodersOutputDataThread->spoolSem); 
 
-    // printf("Controller: leftEncoderSigA:%d, leftEncoderSigB:%d, rightEncoderSigA:%d, rightEncoderSigB:%d\n",
-    //     buffer.leftEncoderSigA,
-    //     buffer.leftEncoderSigB,
-    //     buffer.rightEncoderSigA,
-    //     buffer.rightEncoderSigB);
+
+    decodeEncoders(encodersOutputDataThread);
+}
+
+void decodeEncoders(encodersOutputThreadStruct* encodersOutputDataThread)
+{
+    if (encodersOutputDataThread->encodersOutputData->leftEncoderSigA != lastLeftSigA)
+    {
+        if (encodersOutputDataThread->encodersOutputData->leftEncoderSigA != encodersOutputDataThread->encodersOutputData->leftEncoderSigB)
+        {
+            if (leftCounter < ENCODER_RESOLUTION)
+            {
+                leftCounter ++;
+            }
+            else
+            {
+                leftCounter = 0;
+            }
+        } 
+        else
+        {
+            if (leftCounter > -ENCODER_RESOLUTION)
+            {
+                leftCounter --;
+            }
+            else
+            {
+                leftCounter = 0;
+            }
+        }
+        leftAngle = (360 * leftCounter) / ENCODER_RESOLUTION;
+    }
+    lastLeftSigA = encodersOutputDataThread->encodersOutputData->leftEncoderSigA;
+
+    if (encodersOutputDataThread->encodersOutputData->rightEncoderSigA != lastRightSigA)
+    {
+        if (encodersOutputDataThread->encodersOutputData->rightEncoderSigA != encodersOutputDataThread->encodersOutputData->rightEncoderSigB)
+        {
+            rightCounter ++;
+        } 
+        else
+        {
+            rightCounter --;
+        }
+        rightAngle = (360 * rightCounter) / ENCODER_RESOLUTION;
+        rightAngle = rightAngle < 360 ? rightAngle : 0;
+    }
+    lastRightSigA = encodersOutputDataThread->encodersOutputData->rightEncoderSigA;
 }
 
 void* tReadSensorsOutputThreadFunc(void *cookie)

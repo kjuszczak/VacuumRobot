@@ -2,24 +2,43 @@
 #include <stdio.h>
 #include <math.h>
 
-float getDistanceFromWall(const wallsStruct* wallsInRoom, int xDirectory, int yDirectory, uint16_t robotX, uint16_t robotY)
+#include "../../pscommon/constants.h"
+
+float getDistanceFromWall(const wallsStruct* wallsInRoom, const doorsStruct* doors, uint16_t robotX, uint16_t robotY, float robotAngle)
 {
-    if ((xDirectory == 1) && (yDirectory == 0))
+    float d1, d2, dMin;
+    double x, y;
+    if (robotAngle < 90)
     {
-        return sqrt((wallsInRoom->walls[2].startXY[0] - robotX) * (wallsInRoom->walls[2].startXY[0] - robotX));
+        d1 = (robotY - wallsInRoom->walls[3].startXY[1]) / sin(robotAngle * RADIAN_PROP);
+        d2 = (wallsInRoom->walls[2].startXY[0] - robotX) / cos(robotAngle * RADIAN_PROP);
+        dMin = d1 <= d2 ? d1 : d2;
+        x = cos(robotAngle * RADIAN_PROP) * dMin + robotX;
+        y = robotY - sin(robotAngle * RADIAN_PROP) * dMin;
     }
-    else if ((xDirectory == -1) && (yDirectory == 0))
+    else if (robotAngle >= 90 && robotAngle < 180)
     {
-        return sqrt((wallsInRoom->walls[0].startXY[0] - robotX) * (wallsInRoom->walls[0].startXY[0] - robotX));
+        d1 = (robotY - wallsInRoom->walls[3].startXY[1]) / cos((robotAngle - 90) * RADIAN_PROP);
+        d2 = (robotX - wallsInRoom->walls[0].startXY[0]) / sin((robotAngle - 90) * RADIAN_PROP);
+        dMin = d1 <= d2 ? d1 : d2;
+        x = robotX - sin((robotAngle - 90) * RADIAN_PROP) * dMin;
+        y = robotY - cos((robotAngle - 90) * RADIAN_PROP) * dMin;
     }
-    else if ((xDirectory == 0) && (yDirectory == 1))
+    else if (robotAngle >= 180 && robotAngle < 270)
     {
-        return sqrt((wallsInRoom->walls[1].startXY[1] - robotY) * (wallsInRoom->walls[1].startXY[1] - robotY));
+        d1 = (robotX - wallsInRoom->walls[0].startXY[0]) / cos((robotAngle - 180) * RADIAN_PROP);
+        d2 = (wallsInRoom->walls[1].startXY[1] - robotY) / sin((robotAngle - 180) * RADIAN_PROP);
+        dMin = d1 <= d2 ? d1 : d2;
+        x = robotX - cos((robotAngle - 180) * RADIAN_PROP) * dMin;
+        y = robotY + sin((robotAngle - 180) * RADIAN_PROP) * dMin;
     }
-    else if ((xDirectory == 0) && (yDirectory == -1))
+    else if (robotAngle >= 270 && robotAngle < 360)
     {
-        return sqrt((wallsInRoom->walls[3].startXY[1] - robotY) * (wallsInRoom->walls[3].startXY[1] - robotY));
+        d1 = (wallsInRoom->walls[1].startXY[1] - robotY) / cos((robotAngle - 270) * RADIAN_PROP);
+        d2 = (wallsInRoom->walls[2].startXY[0] - robotX) / sin((robotAngle - 270) * RADIAN_PROP);
+        dMin = d1 <= d2 ? d1 : d2;
+        x = robotX + sin((robotAngle - 270) * RADIAN_PROP) * dMin;
+        y = robotY + cos((robotAngle - 270) * RADIAN_PROP) * dMin;
     }
-    fprintf(stderr, "Wrong directory.\n");
-    return 0;
+    return isDoorOnWay(doors, x, y) ? -1 : dMin - ROBOT_RADIUS;
 }

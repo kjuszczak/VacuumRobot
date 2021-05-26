@@ -14,6 +14,8 @@ int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutp
 void readSensors(sensorsOutputThreadStruct* sensorsOutput);
 void readEncoders(encodersOutputThreadStruct* encodersOutputDataThread);
 
+void decodeEncoders(encodersOutputThreadStruct* encodersOutputDataThread);
+
 void* tReadSensorsOutputThreadFunc(void *cookie);
 void* tReadEncodersOutputThreadFunc(void *cookie);
 

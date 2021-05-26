@@ -1,6 +1,7 @@
 #ifndef WALLS_H
 #define WALLS_H
 
+#include "../doors/doors.h"
 #include <stdint.h>
 
 typedef struct wall
@@ -15,6 +16,6 @@ typedef struct walls
     uint16_t numOfWalls;
 } wallsStruct;
 
-float getDistanceFromWall(const wallsStruct* walls, int xDirectory, int yDirectory, uint16_t robotX, uint16_t robotY);
+float getDistanceFromWall(const wallsStruct* wallsInRoom, const doorsStruct* doors, uint16_t robotX, uint16_t robotY, float robotAngle);
 
 #endif // WALLS_H

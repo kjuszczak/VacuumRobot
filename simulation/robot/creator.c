@@ -12,6 +12,8 @@
 #include "../io/input/input.h"
 #include "../io/output/output.h"
 
+uint8_t clockCounter = 0;
+
 /* Mutex variables */
 pthread_mutex_t robotUdpMutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -28,6 +30,8 @@ pthread_mutex_t rightEncoderMutex = PTHREAD_MUTEX_INITIALIZER;
 /******************************************************/
 
 /* Threads barriers */
+pthread_barrier_t robotMainPeriodicFuncBarrier;
+
 pthread_barrier_t sensorBarrier1;
 pthread_barrier_t sensorBarrier2;
 pthread_barrier_t sensorBarrier3;
@@ -39,15 +43,21 @@ pthread_barrier_t leftEncoderBarrier;
 pthread_barrier_t rightEncoderBarrier;
 
 pthread_barrier_t sensorsOutputWriterBarrier;
+
 pthread_barrier_t encodersOutputWriterBarrier;
+pthread_barrier_t encodersUpdaterBarrier;
 
 pthread_barrier_t wheelsPwmInputReaderBarrier;
+
+pthread_barrier_t garbageUpdaterBarrier;
 /******************************************************/
 
 /* Mqueue variable */
 mqd_t outputMQueue;
+mqd_t encodersOutputMQueue;
 /* Mqueue attributes structure */
-struct	mq_attr outputMQueueAttr;
+struct mq_attr outputMQueueAttr;
+struct mq_attr encodersOutputMQueueAttr;
 /******************************************************/
 
 /* Global variables */
@@ -60,8 +70,8 @@ sensorStruct sensor4 = {-1, 0, &sensorMutex4, &sensorBarrier4};
 sensorStruct* sensors[MAX_NUMBER_OF_SENSORS] = {&sensor1, &sensor2, &sensor3, &sensor4};
 
 /* WHEELS - max speed 20 [cm/s] */
-motorStruct leftWheel = {0, 0, 0, 0, 0, &leftWheelMutex};
-motorStruct rightWheel = {0, 0, 0, 0, 0, &rightWheelMutex};
+motorStruct leftWheel = {0, 0, 0, 255, 0, &leftWheelMutex};
+motorStruct rightWheel = {0, 0, 0, 255, 0, &rightWheelMutex};
 motorStruct* wheels[2] = {&leftWheel, &rightWheel};
 
 /* ENCODERS */
@@ -71,15 +81,18 @@ encoderStruct* encoders[2] = {&leftEncoder, &rightEncoder};
 
 /* ROBOT */
 robotStruct robot = {0,
-					 22, 22, 0, 
+					 22, 420, 0, 
 					 sensors, 
 					 wheels, 
 					 encoders, 
-					 &robotUdpMutex, 
-					 &roomIdUpdaterBarrier, 
-					 &sensorsOutputWriterBarrier, 
+					 &robotUdpMutex,
+					 &robotMainPeriodicFuncBarrier,
+					 &roomIdUpdaterBarrier,
+					 &sensorsOutputWriterBarrier,
 					 &encodersOutputWriterBarrier,
-					 &wheelsPwmInputReaderBarrier};
+					 &encodersUpdaterBarrier,
+					 &wheelsPwmInputReaderBarrier,
+					 &garbageUpdaterBarrier};
 
 /* THREADS VARIABLES */
 tSocketData* socketVisData = NULL;
@@ -114,13 +127,24 @@ void init(tSocketData *socketData, roomsStruct* rooms)
 	outputMQueueAttr.mq_maxmsg = 128;
 	outputMQueueAttr.mq_msgsize = sizeof(int);
 
+
 	/* Create Message Queue */
 	if ((outputMQueue = mq_open("/robotOutput", O_CREAT | O_RDWR, 777, &outputMQueueAttr)) == -1) {
 		fprintf(stderr, "Creation of the mqueue failed.\n");
 		return;
 	}
 
+	encodersOutputMQueueAttr.mq_maxmsg = 128;
+	encodersOutputMQueueAttr.mq_msgsize = sizeof(int);
+
+	/* Create Message Queue */
+	if ((encodersOutputMQueue = mq_open("/encodersOutputQueue", O_CREAT | O_RDWR, 777, &encodersOutputMQueueAttr)) == -1) {
+		fprintf(stderr, "Creation of the mqueue failed.\n");
+		return;
+	}
+
 	/* Initialize barrier */
+	pthread_barrier_init(&robotMainPeriodicFuncBarrier, NULL, 2);
 	for (size_t i = 0; i < MAX_NUMBER_OF_SENSORS; i++)
 	{
 		pthread_barrier_init(sensors[i]->sensorBarrier, NULL, 2);
@@ -131,74 +155,73 @@ void init(tSocketData *socketData, roomsStruct* rooms)
 		pthread_barrier_init(encoders[i]->encoderBarrier, NULL, 2);
 	}
 	pthread_barrier_init(&sensorsOutputWriterBarrier, NULL, 5); // 4x sensors
+
 	pthread_barrier_init(&encodersOutputWriterBarrier, NULL, 3); // 2x sensors
+	pthread_barrier_init(&encodersUpdaterBarrier, NULL, 3); // 2x sensors
+
 	pthread_barrier_init(&wheelsPwmInputReaderBarrier, NULL, 2);
+	pthread_barrier_init(&garbageUpdaterBarrier, NULL, 2);
 }
 
 void clean()
 {
-	unmapShmForSensors(&sensorsOutputSimProcessForThreads);
+	closeSharedMemoryForSensorsOutput(&sensorsOutputThread);
+	closeSharedMemoryForEncodersOutput(&encodersOutputThread);
 }
 
 void createThreadsForRobotSimulation(tSocketData *socketData, roomsStruct* rooms)
 {
 	init(socketData, rooms);
 
-    createTimer();
 	createRobotThreads();
 	createJsonSenderThread();
+	createClockHandler();
 }
 
-int createTimer()
+int createClockHandler()
 {
-    int	status;
+    /* Prepare sigaction struct for handler */
+    struct sigaction action;
+    action.sa_handler = tClockHandlerThreadFunc;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
 
-    /* Threads attributes variables */
-    pthread_attr_t aWorkerThreadAttr;
-    /* Structure with time values */
-    struct itimerspec timerSpecStruct;
-    /* Timer variable */
-    timer_t	timerVar;
-    /* Signal variable */
-    struct sigevent timerEvent;
-	/* Thread function data */
-	union sigval threadData;
+    /* Register signal handler for clock manager */
+    if (sigaction(SIGRTMIN + 1, &action, NULL) < 0) 
+	{
+        fprintf(stderr, "Cannot register SIGRTMIN handler.\n");
+        return -1;
+    }
 
-    /* Initialize threads attributes structures for FIFO scheduling */
-	pthread_attr_init(&aWorkerThreadAttr);
-	pthread_attr_setschedpolicy(&aWorkerThreadAttr, SCHED_FIFO);
-	
-	/* Initialize event to send signal SIGRTMAX */
-	timerEvent.sigev_notify = SIGEV_THREAD;
-	timerEvent.sigev_signo = SIGUSR1;
-    timerEvent.sigev_notify_function = tMainRobotPeriodicThreadFunc;
-	timerEvent.sigev_value.sival_ptr = (void*) &robotDataForThreads;
-	timerEvent.sigev_notify_attributes = &aWorkerThreadAttr;
-
-	/* Create timer */
-  	if ((status = timer_create(CLOCK_REALTIME, &timerEvent, &timerVar))) {
-  		fprintf(stderr, "Error creating timer : %d\n", status);
-  		return 0;
-  	}
-
-  	/* Set up timer structure with time parameters */
-	timerSpecStruct.it_value.tv_sec = 1;
-	timerSpecStruct.it_value.tv_nsec = 0;
-	timerSpecStruct.it_interval.tv_sec = 0;
-	timerSpecStruct.it_interval.tv_nsec = (SIMULATION_SAMPLE_TIME / 2) * 1000000000;
-
-	/* Change timer parameters and run */
-  	timer_settime( timerVar, 0, &timerSpecStruct, NULL);
+	return 0;
 }
 
 int createRobotThreads()
 {
+	createMainPeriodicRobotThread();
 	createSensorsThreads();
 	createEncodersThreads();
 	createRoomIdUpdaterThread();
-	createRobotInputReaderThread();
+	createGarbagesUpdaterThread();
+	// createRobotInputReaderThread();
 	createSensorsOutputWriterThread();
 	createEncodersOutputWriterThread();
+}
+
+int createMainPeriodicRobotThread()
+{
+	pthread_t mainPeriodicRobotThread;
+	/* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Set new thread priority */
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam( pthread_self(), policy, &param);
+
+	pthread_create(&mainPeriodicRobotThread, NULL, tMainRobotPeriodicThreadFunc, (void *) &robotDataForThreads);
+	pthread_detach(mainPeriodicRobotThread);	
 }
 
 int createSensorsThreads()
@@ -248,11 +271,27 @@ int createRoomIdUpdaterThread()
 	struct sched_param param;
 
 	/* Set new thread priority */
-	param.sched_priority = sched_get_priority_max(policy);
+	param.sched_priority = sched_get_priority_min(policy);
 	pthread_setschedparam( pthread_self(), policy, &param);
 
 	pthread_create(&roomIdUpdaterThread, NULL, tUpdateRoomIdThreadFunc, (void *) &robotDataForThreads);
 	pthread_detach(roomIdUpdaterThread);
+}
+
+int createGarbagesUpdaterThread()
+{
+	pthread_t garbagesUpdaterThread;
+	/* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Set new thread priority */
+	param.sched_priority = sched_get_priority_min(policy);
+	pthread_setschedparam( pthread_self(), policy, &param);
+
+	pthread_create(&garbagesUpdaterThread, NULL, tUpdateGarbagesThreadFunc, (void *) &robotDataForThreads);
+	pthread_detach(garbagesUpdaterThread);
 }
 
 int createRobotInputReaderThread()
@@ -320,6 +359,26 @@ int createJsonSenderThread()
 }
 
 /* THREADS FUNCTION */
+void *tClockHandlerThreadFunc(void *cookie)
+{
+    /* Scheduling policy: FIFO or RR */
+	int policy = SCHED_FIFO;
+	/* Structure of other thread parameters */
+	struct sched_param param;
+
+	/* Read modify and set new thread priority */
+	param.sched_priority = sched_get_priority_max(policy);
+	pthread_setschedparam(pthread_self(), policy, &param);
+
+	if (clockCounter < SIMULATION_MAX_COUNTER)
+	{
+		clockCounter++;
+		return;
+	}
+	pthread_barrier_wait(&robotMainPeriodicFuncBarrier);
+	clockCounter = 0;
+}
+
 void* tRobotJsonUpdateThreadFunc(void *cookie)
 {
 	int outputResult = 1;

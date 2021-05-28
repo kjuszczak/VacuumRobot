@@ -92,7 +92,7 @@ void createFlatJson(const roomsStruct* roomsInFlat, json_object* jObj)
         }
         for(size_t g = 0; g < iRoom->garbages->numOfGarbages; g++)
         {
-            createGarbages(jGarbages, iRoom->garbages->garbages[g]);
+            createGarbages(jGarbages, &iRoom->garbages->garbages[g]);
         }
     }
     json_object_object_add(jObj, "walls", jWalls);
@@ -109,7 +109,7 @@ void createGarbageJson(const roomsStruct* roomsInFlat, json_object* jObj)
         pthread_mutex_lock(roomsInFlat->rooms[i]->garbages->garbagesMutex);
         for(size_t j = 0; j < roomsInFlat->rooms[i]->garbages->numOfGarbages; j++)
         {
-            createGarbages(jGarbages, roomsInFlat->rooms[i]->garbages->garbages[j]);
+            createGarbages(jGarbages, &roomsInFlat->rooms[i]->garbages->garbages[j]);
         }
         pthread_mutex_unlock(roomsInFlat->rooms[i]->garbages->garbagesMutex);
     }

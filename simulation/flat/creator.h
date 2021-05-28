@@ -7,6 +7,7 @@
 
 void createFlatJsonObj(json_object* jObj);
 void createGarbageUpdateJson(json_object* jObj);
+void createGarbagesInFlat();
 roomsStruct* getFlatPtr();
 
 #endif // FLAT_CREATOR_H

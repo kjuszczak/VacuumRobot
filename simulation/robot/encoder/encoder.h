@@ -18,7 +18,7 @@ typedef struct encoder
     pthread_barrier_t* encoderBarrier;
 } encoderStruct;
 
-void updateEncoder(encoderStruct* enc, int angle);
+void updateEncoder(encoderStruct* enc, int angle, pthread_barrier_t* outputBarrier);
 void updateSigB(encoderStruct* enc, uint8_t* sigB);
 void incrementEncoder(encoderStruct* enc);
 void decrementEncoder(encoderStruct* enc);

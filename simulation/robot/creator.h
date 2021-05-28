@@ -11,14 +11,16 @@ void clean();
 
 void createThreadsForRobotSimulation(tSocketData *socketData, roomsStruct* rooms);
 
-int createTimer();
+int createClockHandler();
 
 int createRobotThreads();
 int createJsonSenderThread();
 
+int createMainPeriodicRobotThread();
 int createSensorsThreads();
 int createEncodersThreads();
 int createRoomIdUpdaterThread();
+int createGarbagesUpdaterThread();
 
 int createRobotInputReaderThread();
 int createSensorsOutputWriterThread();
@@ -27,6 +29,7 @@ int createEncodersOutputWriterThread();
 /*
  * Threads functions
  */
+void *tClockHandlerThreadFunc(void *cookie);
 void *tRobotJsonUpdateThreadFunc(void *cookie);
 
 #endif // ROBOT_CREATOR_H

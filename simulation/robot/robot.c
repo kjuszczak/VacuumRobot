@@ -4,9 +4,10 @@
 #include <math.h>
 #include <pthread.h>
 
+#include "../flat/rooms/garbages/garbages.h"
 #include "../io/input/input.h"
 #include "../../pscommon/constants.h"
-
+int lol = 1;
 int robotOutput = 1;
 
 uint8_t timerCounter = 0;
@@ -50,9 +51,18 @@ void* tUpdateEncoderThreadFunc(void *cookie)
     for (;;)
     {
         pthread_barrier_wait(encoderData->robotThread->robot->encoders[encoderData->encoderId]->encoderBarrier);
+        
+        pthread_barrier_wait(encoderData->robotThread->robot->encodersUpdaterBarrier);
+
+        pthread_mutex_lock(encoderData->robotThread->robot->wheels[encoderData->encoderId]->motorMutex);
+        int angle = encoderData->robotThread->robot->wheels[encoderData->encoderId]->angle;
+        pthread_mutex_unlock(encoderData->robotThread->robot->wheels[encoderData->encoderId]->motorMutex);
+
         updateEncoder(
             encoderData->robotThread->robot->encoders[encoderData->encoderId],
-            encoderData->robotThread->robot->wheels[encoderData->encoderId]->angle);
+            angle,
+            encoderData->robotThread->robot->encodersOutputWriterBarrier);
+
         pthread_barrier_wait(encoderData->robotThread->robot->encodersOutputWriterBarrier);
     }
 }
@@ -78,54 +88,58 @@ void* tUpdateRoomIdThreadFunc(void *cookie)
     }
 }
 
+void* tUpdateGarbagesThreadFunc(void *cookie)
+{
+    robotThreadStruct* robotThread = (robotThreadStruct*)cookie;
+    for (;;)
+    {
+        pthread_barrier_wait(robotThread->robot->garbageUpdaterBarrier);
+        deleteGarbageIfVacuumed(robotThread->rooms->rooms[robotThread->robot->roomId]->garbages, robotThread->robot->x, robotThread->robot->y);
+    }
+}
+
 /* Input - [2xPWM], Output - [4xSensors, 2xEncoder] */
 void* tMainRobotPeriodicThreadFunc(void *cookie)
 {
-    /* Scheduling policy: FIFO or RR */
-	int policy = SCHED_FIFO;
-	/* Structure of other thread parameters */
-	struct sched_param param;
-
-	/* Read modify and set new thread priority */
-	param.sched_priority = sched_get_priority_max(policy);
-	pthread_setschedparam( pthread_self(), policy, &param);
-
     robotThreadStruct* robotThread = (robotThreadStruct*)cookie;
     double linearVelocity[2];
 
-    if (timerCounter == 1)
+    for (;;)
     {
-        timerCounter = 0;
-        for (size_t i = 0; i < 2; i++)
+        pthread_barrier_wait(robotThread->robot->robotMainPeriodicFuncBarrier);
+
+        pthread_barrier_wait(robotThread->robot->encoders[0]->encoderBarrier);
+        pthread_barrier_wait(robotThread->robot->encoders[1]->encoderBarrier);
+
+        pthread_barrier_wait(robotThread->robot->sensors[0]->sensorBarrier);
+        pthread_barrier_wait(robotThread->robot->sensors[1]->sensorBarrier);
+        pthread_barrier_wait(robotThread->robot->sensors[2]->sensorBarrier);
+        pthread_barrier_wait(robotThread->robot->sensors[3]->sensorBarrier);
+
+        if (timerCounter)
         {
-            pthread_barrier_wait(robotThread->robot->encoders[i]->encoderBarrier);
+            mq_send(*robotThread->outputMQueue, (char *)&robotOutput, sizeof(int), 0);
+            timerCounter = 0;
+            continue;
         }
-        return 0;
+        timerCounter++;
+
+        // pthread_barrier_wait(robotThread->robot->wheelsPwmInputReaderBarrier);
+
+        calculateVelocity(robotThread->robot->wheels[0], WHEEL_DIAMATER_M, MAX_ANGULAR_VELOCITY);
+        calculateMotorAngle(robotThread->robot->wheels[0], SIMULATION_SAMPLE_TIME);
+
+        linearVelocity[0] = robotThread->robot->wheels[0]->linearVelocity * 100; // [cm]
+        calculateVelocity(robotThread->robot->wheels[1], WHEEL_DIAMATER_M, MAX_ANGULAR_VELOCITY);
+        calculateMotorAngle(robotThread->robot->wheels[1], SIMULATION_SAMPLE_TIME);
+        linearVelocity[1] = robotThread->robot->wheels[1]->linearVelocity * 100; // [cm]
+
+        updateRobotParameters(robotThread->robot, linearVelocity[0], linearVelocity[1], SIMULATION_SAMPLE_TIME);
+        updateSensorsAnglesParameters(robotThread->robot);
+
+        pthread_barrier_wait(robotThread->robot->roomIdUpdaterBarrier);
+        pthread_barrier_wait(robotThread->robot->garbageUpdaterBarrier);
     }
-    timerCounter++;
-
-    pthread_barrier_wait(robotThread->robot->wheelsPwmInputReaderBarrier);
-
-    for (size_t i = 0; i < 2; i++)
-    {
-        calculateVelocity(robotThread->robot->wheels[i], WHEEL_DIAMATER_M, MAX_ANGULAR_VELOCITY);
-        calculateMotorAngle(robotThread->robot->wheels[i], SIMULATION_SAMPLE_TIME);
-        linearVelocity[i] = robotThread->robot->wheels[i]->linearVelocity * 100; // [cm]
-    }
-    updateRobotParameters(robotThread->robot, linearVelocity[0], linearVelocity[1], SIMULATION_SAMPLE_TIME);
-    updateSensorsAnglesParameters(robotThread->robot);
-
-    for (size_t i = 0; i < MAX_NUMBER_OF_SENSORS; i++)
-    {
-        pthread_barrier_wait(robotThread->robot->sensors[i]->sensorBarrier);
-        if (i < 2)
-        {
-            pthread_barrier_wait(robotThread->robot->encoders[i]->encoderBarrier);
-        }
-    }
-    pthread_barrier_wait(robotThread->robot->roomIdUpdaterBarrier);
-
-    mq_send(*robotThread->outputMQueue, (char *)&robotOutput, sizeof(int), 0);
 }
 
 void updateRobotParameters(robotStruct* robot, double leftWheelVelocity, double rightWheelVelocity, double time)

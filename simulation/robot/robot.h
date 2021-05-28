@@ -23,10 +23,14 @@ typedef struct robot
     motorStruct** wheels;
     encoderStruct** encoders;
     pthread_mutex_t* robotMutex;
+    pthread_barrier_t* robotMainPeriodicFuncBarrier;
     pthread_barrier_t* roomIdUpdaterBarrier;
     pthread_barrier_t* sensorsOutputWriterBarrier;
     pthread_barrier_t* encodersOutputWriterBarrier;
+    pthread_barrier_t* encodersUpdaterBarrier;
     pthread_barrier_t* wheelsPwmInputReaderBarrier;
+    pthread_barrier_t* garbageUpdaterBarrier;
+    // mqd_t* encodersOutputMQueue;
 } robotStruct;
 
 /* Threads structs */

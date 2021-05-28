@@ -19,12 +19,16 @@ typedef struct encodersOutputSimProcess
 int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputDataThread);
 int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutputDataThread);
 
+int unmapShmForSensors(sensorsOutputThreadStruct* sensorsOutputDataThread);
+int closeSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputDataThread);
+
+int unmapShmForEncoders(encodersOutputThreadStruct* encodersOutputDataThread);
+int closeSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutputDataThread);
+
 void fillBufferWithSensors(sensorsOutputStruct* buffer, robotStruct* robot);
 void fillBufferWithEncoders(encodersOutputStruct* buffer, robotStruct* robot);
 
 void* tWriteSensorsOutputThreadFunc(void *cookie);
 void* tWriteEncodersOutputThreadFunc(void *cookie);
-
-int unmapShmForSensors(sensorsOutputSimProcessStruct* sensorsOutputDataThread);
 
 #endif // SIMULATION_ROBOT_OUTPUT_H

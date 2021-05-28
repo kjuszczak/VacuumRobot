@@ -3,10 +3,19 @@
 
 #include "../../pscommon/constants.h"
 
+void init();
+void clean();
+
+int createClockHandler();
+
 void createThreadsForController();
 
-int createTimer();
+void createMainPeriodicThread();
 
-void *tMainControllerPeriodicThreadFunc(void *cookie);
+void createThreadForEncodersAngleUpdater();
+void createThreadForEncodersReader();
+void createThreadForSensorsReader();
+
+void *tClockHandlerThreadFunc(void *cookie);
 
 #endif // CONTROLLER_CREATOR_H

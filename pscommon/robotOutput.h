@@ -3,6 +3,7 @@
 
 #include <semaphore.h>
 #include <stdint.h>
+#include <signal.h>
 
 typedef struct sensorsOutput
 {

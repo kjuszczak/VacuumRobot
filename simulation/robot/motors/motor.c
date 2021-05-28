@@ -34,6 +34,8 @@ void calculateVelocity(motorStruct* motor, double diamater, double maxAngularVel
 
 void calculateMotorAngle(motorStruct* motor, double time)
 {
+    pthread_mutex_lock(motor->motorMutex);
     motor->angle += (int)(time * (motor->angularVelocity * DEGREE_PROP));
     motor->angle = motor->angle < 360 &&  motor->angle > -360? motor->angle : 0;
+    pthread_mutex_unlock(motor->motorMutex);
 }

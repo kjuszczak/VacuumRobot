@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/types.h>
@@ -5,9 +6,15 @@
 #include <unistd.h>
 #include <signal.h>
 
+#include "pscommon/constants.h"
+
+pid_t pid_simulation, pid_controller;
+
+int createTimer();
+void* tClockManagerThreadFunc(void *cookie);
+
 int main(int argc, char *argv[])
 {
-	pid_t pid_simulation, pid_controller;
 	char * robot_simulation[3] = {"./robot_simulation", NULL};
     char * robot_controller[3] = {"./robot_controller", NULL};
 
@@ -26,6 +33,11 @@ int main(int argc, char *argv[])
         }
 	}
 
+    if (createTimer())
+    {
+        return EXIT_FAILURE;
+    }
+
 	// /* Wait for processes*/
 	while(getc(stdin)=='q') {}
 
@@ -35,5 +47,53 @@ int main(int argc, char *argv[])
     waitpid(pid_controller, NULL, 0);
 
     printf("Main exits\n");
+    return EXIT_SUCCESS;    
+}
+
+int createTimer()
+{
+    int	status;
+
+    /* Threads attributes variables */
+    pthread_attr_t aWorkerThreadAttr;
+    /* Structure with time values */
+    struct itimerspec timerSpecStruct;
+    /* Timer variable */
+    timer_t	timerVar;
+    /* Signal variable */
+    struct sigevent timerEvent;
+	/* Thread function data */
+	union sigval threadData;
+
+    /* Initialize threads attributes structures for FIFO scheduling */
+	pthread_attr_init(&aWorkerThreadAttr);
+	pthread_attr_setschedpolicy(&aWorkerThreadAttr, SCHED_FIFO);
+	
+	/* Initialize event to send signal SIGRTMAX */
+	timerEvent.sigev_notify = SIGEV_THREAD;
+    timerEvent.sigev_notify_function = tClockManagerThreadFunc;
+	timerEvent.sigev_notify_attributes = &aWorkerThreadAttr;
+
+	/* Create timer */
+  	if ((status = timer_create(CLOCK_REALTIME, &timerEvent, &timerVar))) {
+  		fprintf(stderr, "Error creating timer : %d\n", status);
+  		return EXIT_FAILURE;
+  	}
+
+  	/* Set up timer structure with time parameters */
+	timerSpecStruct.it_value.tv_sec = 1;
+	timerSpecStruct.it_value.tv_nsec = 0;
+	timerSpecStruct.it_interval.tv_sec = 0;
+	timerSpecStruct.it_interval.tv_nsec = CLOCK_SAMPLE_TIME * 1000000000;
+
+	/* Change timer parameters and run */
+  	timer_settime( timerVar, 0, &timerSpecStruct, NULL);
+
     return EXIT_SUCCESS;
+}
+
+void* tClockManagerThreadFunc(void *cookie)
+{
+    kill(pid_controller, SIGRTMIN + 2);
+    kill(pid_simulation, SIGRTMIN + 1);
 }

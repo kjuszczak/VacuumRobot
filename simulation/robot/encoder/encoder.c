@@ -9,21 +9,32 @@
 #define TRUE                0x01
 #define FALSE               0x00
 
-void updateEncoder(encoderStruct* enc, int angle)
+void updateEncoder(encoderStruct* enc, int angle, pthread_barrier_t* outputBarrier)
 {
-    if (enc == NULL)
+    // printf("updateEncoder: start\n");
+    // printf("updateEncoder: start: sigA:%u, sigB:%u, angle:%d, lastAngle:%d\n", enc->sigA, enc->sigB, angle, enc->lastAngle);
+
+    uint8_t isIncrementing = ((angle == 0) && (enc->lastAngle == 359)) ? 1 : ((angle - enc->lastAngle) == 1);
+    uint8_t isDecrementing = ((angle == 0) && (enc->lastAngle == -359)) ? -1 : ((enc->lastAngle - angle) == 1);
+
+    if (isIncrementing)
+    // if (angle == 1)
     {
-        fprintf(stderr, "Encoder is null\n");
-        return;
-    }
-    if (angle - enc->lastAngle >= 1)
-    {
+        // printf("updateEncoder: angle:%d, lastAngle:%d, (angle - enc->lastAngle):%d\n", 
+        //         angle,
+        //         enc->lastAngle,
+        //         angle - enc->lastAngle);
         incrementEncoder(enc);
         enc->lastAngle = angle;
         enc->updateSignals = TRUE;
     }
-    else if (enc->lastAngle - angle >= 1)
+    else if (isDecrementing)
+    // else if (angle == -1)
     {
+        // printf("updateEncoder: angle:%d, lastAngle:%d, (enc->lastAngle - angle):%d\n",
+        //         angle,
+        //         enc->lastAngle,
+        //         enc->lastAngle - angle);
         decrementEncoder(enc);
         enc->lastAngle = angle;
         enc->updateSignals = TRUE;
@@ -38,6 +49,9 @@ void updateEncoder(encoderStruct* enc, int angle)
         decrementEncoder(enc);
         enc->updateSignals = FALSE;
     }
+    // printf("updateEncoder: end\n");
+    // pthread_barrier_wait(outputBarrier);
+    // printf("updateEncoder: end: \tsigA:%u, sigB:%u, angle:%d\n", enc->sigA, enc->sigB, angle);
 }
 
 void updateSigB(encoderStruct* enc, uint8_t* sigB)
@@ -80,6 +94,22 @@ void incrementEncoder(encoderStruct* enc)
     }
     else
     {
+        // if (!tempSigB && !tempSigA)
+        // {
+        //     tempSigA = 1;  
+        // }
+        // else if (!tempSigB && tempSigA)
+        // {
+        //     tempSigA = 1;
+        // }
+        // else if (tempSigB && tempSigA)
+        // {
+        //     tempSigA = 0;
+        // }
+        // else if (tempSigB && !tempSigA)
+        // {
+        //     tempSigA = 0;
+        // }
         if (!tempSigB)
         {
             tempSigA = TRUE;  

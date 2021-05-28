@@ -6,19 +6,13 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <sys/mman.h>
 #include <pthread.h>
 
 #include "../../pscommon/constants.h"
-
-uint8_t lastLeftSigA = 0;
-uint8_t lastRightSigA = 0;
-int leftCounter = 0;
-int rightCounter = 0;
-int leftAngle = 0;
-int rightAngle = 0;
-
+#include "../creator/encoder/encoder.h"
 
 int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputDataThread)
 {
@@ -54,7 +48,7 @@ int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputD
 		return 0;
     }
 
-    sem_post(sensorsOutputDataThread->mutexSem);
+    return 1;
 }
 
 int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutputDataThread)
@@ -91,89 +85,59 @@ int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutp
 		return 0;
     }
 
-    sem_post(encodersOutputDataThread->mutexSem);
+    return 1;
 }
 
-void readSensors(sensorsOutputThreadStruct* sensorsOutput)
+int unmapShmForEncoders(encodersOutputThreadStruct* encodersOutputDataThread)
 {
-    sensorsOutputStruct buffer;
-
-    sem_wait(sensorsOutput->spoolSem);
-
-    // Enter critcal section
-    sem_wait(sensorsOutput->mutexSem);
-
-    // Receive data
-    memcpy(&buffer, sensorsOutput->sensorsOutputData, sizeof(sensorsOutputStruct));
-
-    // Leave critical section
-    sem_post(sensorsOutput->mutexSem);
-}
-
-void readEncoders(encodersOutputThreadStruct* encodersOutputDataThread)
-{
-    encodersOutputStruct buffer;
-
-    // Enter critcal section
-    sem_wait(encodersOutputDataThread->mutexSem);
-
-    // Send data
-    memcpy(&buffer,encodersOutputDataThread->encodersOutputData, sizeof(encodersOutputStruct));
-
-    // Leave critical section
-    sem_post(encodersOutputDataThread->mutexSem);
-
-    // Increment the spool
-    sem_post(encodersOutputDataThread->spoolSem); 
-
-
-    decodeEncoders(encodersOutputDataThread);
-}
-
-void decodeEncoders(encodersOutputThreadStruct* encodersOutputDataThread)
-{
-    if (encodersOutputDataThread->encodersOutputData->leftEncoderSigA != lastLeftSigA)
-    {
-        if (encodersOutputDataThread->encodersOutputData->leftEncoderSigA != encodersOutputDataThread->encodersOutputData->leftEncoderSigB)
-        {
-            if (leftCounter < ENCODER_RESOLUTION)
-            {
-                leftCounter ++;
-            }
-            else
-            {
-                leftCounter = 0;
-            }
-        } 
-        else
-        {
-            if (leftCounter > -ENCODER_RESOLUTION)
-            {
-                leftCounter --;
-            }
-            else
-            {
-                leftCounter = 0;
-            }
-        }
-        leftAngle = (360 * leftCounter) / ENCODER_RESOLUTION;
+    // Unmap shared memory
+    if (munmap(encodersOutputDataThread->encodersOutputData, sizeof (encodersOutputThreadStruct)) == -1) {
+        fprintf(stderr, "Cannot truncate shared memmory.\n");
+		return 0;
     }
-    lastLeftSigA = encodersOutputDataThread->encodersOutputData->leftEncoderSigA;
+    
+    return 0;
+}
 
-    if (encodersOutputDataThread->encodersOutputData->rightEncoderSigA != lastRightSigA)
-    {
-        if (encodersOutputDataThread->encodersOutputData->rightEncoderSigA != encodersOutputDataThread->encodersOutputData->rightEncoderSigB)
-        {
-            rightCounter ++;
-        } 
-        else
-        {
-            rightCounter --;
-        }
-        rightAngle = (360 * rightCounter) / ENCODER_RESOLUTION;
-        rightAngle = rightAngle < 360 ? rightAngle : 0;
+int closeSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutputDataThread)
+{
+    sem_destroy(encodersOutputDataThread->mutexSem);
+    sem_destroy(encodersOutputDataThread->spoolSem);
+    unmapShmForEncoders(encodersOutputDataThread);
+}
+
+int unmapShmForSensors(sensorsOutputThreadStruct* sensorsOutputDataThread)
+{
+    // Unmap shared memory
+    if (munmap(sensorsOutputDataThread->sensorsOutputData, sizeof (sensorsOutputThreadStruct)) == -1) {
+        fprintf(stderr, "Cannot truncate shared memmory.\n");
+		return 0;
     }
-    lastRightSigA = encodersOutputDataThread->encodersOutputData->rightEncoderSigA;
+    
+    return 0;
+}
+
+int closeSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputDataThread)
+{
+    sem_destroy(sensorsOutputDataThread->mutexSem);
+    sem_destroy(sensorsOutputDataThread->spoolSem);
+    unmapShmForSensors(sensorsOutputDataThread);
+}
+
+void updateControllerEncoders(encodersOutputStruct* encodersOutputData, controllerStruct* controller)
+{
+    pthread_mutex_lock(controller->leftWheel->encoderMutex);
+    controller->leftWheel->sigA = encodersOutputData->leftEncoderSigA;
+    controller->leftWheel->sigB = encodersOutputData->leftEncoderSigB;
+    pthread_mutex_unlock(controller->leftWheel->encoderMutex);
+
+    pthread_mutex_lock(controller->rightWheel->encoderMutex);
+    controller->rightWheel->sigA = encodersOutputData->rightEncoderSigA;
+    controller->rightWheel->sigB = encodersOutputData->rightEncoderSigB;
+    pthread_mutex_unlock(controller->rightWheel->encoderMutex);
+
+    pthread_barrier_wait(controller->leftWheel->encoderBarrier);
+    pthread_barrier_wait(controller->rightWheel->encoderBarrier);
 }
 
 void* tReadSensorsOutputThreadFunc(void *cookie)
@@ -191,18 +155,53 @@ void* tReadSensorsOutputThreadFunc(void *cookie)
 
     for (;;)
     {
-        // pthread_barrier_wait(sensorsOutputDataThread->robot->sensorsOutputWriterBarrier);
+        pthread_barrier_wait(sensorsOutputDataThread->controller->sensorsOutputReaderBarrier);
 
         // Enter critcal section
-        sem_wait(sensorsOutputDataThread->sensorsOutputThread->mutexSem);
+        while (sem_wait(sensorsOutputDataThread->sensorsOutputThread->spoolSem)) {}
 
         // Send data
         memcpy(sensorsOutputDataThread->sensorsOutputThread->sensorsOutputData, &buffer, sizeof(sensorsOutputStruct));
 
         // Leave critical section
         sem_post(sensorsOutputDataThread->sensorsOutputThread->mutexSem);
+    }
+}
 
-	    // Increment the spool
-        sem_post(sensorsOutputDataThread->sensorsOutputThread->spoolSem);
+void* tReadEncodersOutputThreadFunc(void *cookie)
+{
+    encodersOutputStruct buffer;
+    encodersOutputControllerProcessStruct* encodersOutputDataThread = (encodersOutputControllerProcessStruct*)cookie;
+
+    if (!createSharedMemoryForEncodersOutput(encodersOutputDataThread->encodersOutputThread))
+    {
+        fprintf(stderr, "Cannot create robot output reader.\n");
+		return NULL;
+    }
+
+    sem_post(encodersOutputDataThread->encodersOutputThread->mutexSem);
+
+    for (;;)
+    {
+        pthread_barrier_wait(encodersOutputDataThread->controller->encodersOutputReaderBarrier);
+
+        while (sem_wait(encodersOutputDataThread->encodersOutputThread->spoolSem)) {}
+
+        // Receive data
+        memcpy(&buffer, encodersOutputDataThread->encodersOutputThread->encodersOutputData, sizeof(encodersOutputStruct));
+
+        sem_post(encodersOutputDataThread->encodersOutputThread->mutexSem);
+
+        updateControllerEncoders(&buffer, encodersOutputDataThread->controller);
+
+        pthread_barrier_wait(encodersOutputDataThread->controller->encodersCalculationBarrier);
+
+        // printf("tReadEncodersOutputThreadFunc read: \tleftWheelSigA:%u, leftWheelSigB:%u, rightWheelSigA:%u, rightWheelSigB:%u, leftWheelAngle:%d, rightWheelAngle:%d\n\n",
+        //     buffer.leftEncoderSigA,
+        //     buffer.leftEncoderSigB,
+        //     buffer.rightEncoderSigA,
+        //     buffer.rightEncoderSigB,
+        //     encodersOutputDataThread->controller->leftWheel->angle,
+        //     encodersOutputDataThread->controller->rightWheel->angle);
     }
 }

@@ -3,6 +3,26 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <time.h>
+
+#include "../../pscommon/constants.h"
+
+void createGarbagesInRoom(garbagesStruct* garbages, uint16_t leftTopX, uint16_t leftTopY, uint16_t rightDownX, uint16_t rightDownY)
+{
+    leftTopX += 20;
+    leftTopY += 20;
+    rightDownX -= 20;
+    rightDownY -= 20; 
+
+    srand(time(NULL));
+    size_t limit = rand() % MAX_NUMBERS_OF_GARBAGES_IN_ROOM;
+    for (size_t i = 0; i < limit; i++)
+    {
+        uint16_t x = (rand() % (rightDownX - leftTopX)) + leftTopX;
+        uint16_t y = (rand() % (rightDownY - leftTopY)) + leftTopY;
+        allocateGarbage(garbages, x, y, 1);
+    }
+}
 
 void allocateGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y, uint16_t weight)
 {
@@ -10,90 +30,67 @@ void allocateGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y, uint16_t 
     {
         return;
     }
-    garbageStruct* newGarbage = malloc(1 * sizeof(garbageStruct));
-    if (!newGarbage) 
+
+    if (findGarbage(garbages, x, y, 0) != -1)
     {
-        fprintf(stderr, "Cannot allocate.\n");
+        return;
     }
-    newGarbage->x = x;
-    newGarbage->y = y;
-    newGarbage->weight = weight;
-    pthread_mutex_lock(garbages->garbagesMutex);
-    uint16_t newNumOfGarbages = garbages->numOfGarbages + 1;
-    garbageStruct** tmpGarbages = malloc(newNumOfGarbages * sizeof(garbageStruct*));
-    if (!tmpGarbages)
+
+    if (garbages->numOfGarbages < MAX_NUMBERS_OF_GARBAGES_IN_ROOM)
     {
-        fprintf(stderr, "Cannot allocate.\n");
+        pthread_mutex_lock(garbages->garbagesMutex);
+        garbages->garbages[garbages->numOfGarbages].x = x;
+        garbages->garbages[garbages->numOfGarbages].y = y;
+        garbages->garbages[garbages->numOfGarbages].weight = weight;
+        garbages->numOfGarbages++;
+        pthread_mutex_unlock(garbages->garbagesMutex);
     }
-    garbages->numOfGarbages++;
-    for (size_t i = 0; i < garbages->numOfGarbages - 1; i++)
-    {
-        tmpGarbages[i] = garbages->garbages[i];
-    }
-    free(garbages->garbages);
-    garbages->garbages = tmpGarbages;
-    garbages->garbages[garbages->numOfGarbages - 1] = newGarbage;
-    pthread_mutex_unlock(garbages->garbagesMutex);
 }
 
-void deleteGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y)
+void deleteGarbage(garbagesStruct* garbages, size_t indexToDelete)
 {
     if (garbages == NULL || garbages->numOfGarbages == 0)
     {
         return;
     }
     pthread_mutex_lock(garbages->garbagesMutex);
-    size_t indexToDelete = garbages->numOfGarbages;
-    for (size_t i = 0; i < garbages->numOfGarbages; i++)
-    {
-        if (garbages->garbages[i]->x == x && garbages->garbages[i]->y == y)
-        {
-            indexToDelete = i;
-            break;
-        }     
-    }
-    if (indexToDelete == garbages->numOfGarbages)
-    {
-        return;
-    }
-
-    garbageStruct** tmpGarbages = malloc((garbages->numOfGarbages - 1) * sizeof(garbageStruct*));
-    if (!tmpGarbages) 
-    {
-        fprintf(stderr, "Cannot delete.\n");
-    }
-
-    free(garbages->garbages[indexToDelete]);
-    for (size_t i = 0; i < garbages->numOfGarbages; i++)
-    {
-        if (i < indexToDelete)
-        {
-            tmpGarbages[i] = garbages->garbages[i];
-        }
-        else if (i == indexToDelete)
-        {
-            continue;
-        }
-        else
-        {
-            tmpGarbages[i-1] = garbages->garbages[i];
-        }
-    }
     garbages->numOfGarbages--;
-    free(garbages->garbages);
-    garbages->garbages = tmpGarbages;
+    for (size_t i = 0; i < garbages->numOfGarbages; i++)
+    {
+        if (i >= indexToDelete)
+        {
+            garbages->garbages[i] = garbages->garbages[i + 1];
+        }
+    }
     pthread_mutex_unlock(garbages->garbagesMutex);
 }
 
 void deleteGarbageIfVacuumed(garbagesStruct* garbages, uint16_t x, uint16_t y)
 {
-    pthread_mutex_lock(garbages->garbagesMutex);
-    for (size_t i = 0; i < garbages->numOfGarbages; i++)
+    size_t indexToDelete = findGarbage(garbages, x, y, 10);
+    if (indexToDelete != -1)
     {
-        if ((garbages->garbages[i]->x == x) && (garbages->garbages[i]->x == y))
+        deleteGarbage(garbages, indexToDelete);
+    }
+}
+
+int findGarbage(garbagesStruct* garbages, uint16_t x, uint16_t y, uint16_t radius)
+{
+    int indexToDelete = -1;
+    if (garbages->numOfGarbages == 0)
+    {
+        return -1;
+    }
+
+    for (int i = 0; i < garbages->numOfGarbages; i++)
+    {
+        uint16_t diffX = garbages->garbages[i].x < x ? (x - garbages->garbages[i].x) : (garbages->garbages[i].x - x);
+        uint16_t diffY = garbages->garbages[i].y < y ? (y - garbages->garbages[i].y) : (garbages->garbages[i].y - y);
+        if ((diffX <= radius) && (diffY <= radius))
         {
-            deleteGarbage(garbages, x, y);
+            indexToDelete = i;
+            break;
         }
     }
-    pthread_mutex_unlock(garbages->garbagesMutex);
+    return indexToDelete;
 }

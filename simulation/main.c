@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     sigset_t mask;
     sigemptyset(&mask);
     sigprocmask(0, NULL, &mask);
-	sigaddset(&mask, SIGRTMIN + 1);
+	sigaddset(&mask, SIGRTMAX);
     sigprocmask(SIG_SETMASK, &mask, NULL);
 
     /* Prepare sigaction struct for handler */
@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
 	visSocketData.jRobotObj = jobjRobot;
 
 	/* Create flat */
+	createGarbagesInFlat();
 	createFlatJsonObj(jobjFlat);
 	sendFlatJson(&visSocketData);
 

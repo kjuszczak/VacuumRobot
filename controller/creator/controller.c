@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 
+#include "../io/input/input.h"
 #include "../io/output/output.h"
 #include "encoder/encoder.h"
 
@@ -15,15 +16,21 @@ void *tMainControllerPeriodicThreadFunc(void *cookie)
 
         pthread_barrier_wait(controller->encodersOutputReaderBarrier);
         pthread_barrier_wait(controller->sensorsOutputReaderBarrier);
-        // printf("tMainControllerPeriodicThreadFunc: \tleftWheelangle:%d, rightWheelangle:%d\n", controller->leftWheel->angle, controller->rightWheel->angle);
-        // printf("tMainControllerPeriodicThreadFunc: sigA:%u, sigB:%u, angle:%d\n",
-        //         controller->leftWheel->sigA,
-        //         controller->leftWheel->sigB,
-        //         controller->leftWheel->angle);
-        // wheelsPwm.leftWheelPwm = 255;
-        // wheelsPwm.rightWheelPwm = 255;
 
-        // writeWheelsPwmToFifo(&wheelsPwm);
+        if (controller->sensors[0] > 10)
+        {
+            writeWheelsPwmToFifo(255, 255);
+        }
+        else
+        {
+            writeWheelsPwmToFifo(255, -255);
+            // printf("STOP\n");
+        }
+        // printf("controller: sensors1:%lf, sensors2:%lf, sensors3:%lf, sensors4:%lf\n",
+        //         controller->sensors[0],
+        //         controller->sensors[1],
+        //         controller->sensors[2],
+        //         controller->sensors[3]);
     }
 }
 

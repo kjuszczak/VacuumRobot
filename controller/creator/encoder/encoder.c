@@ -16,8 +16,6 @@ void calculateAngle(encoderStruct* encoder)
     counter = encoder->counter;
     pthread_mutex_unlock(encoder->encoderMutex);
 
-    // printf("calculateAngle \t\t\t\tstart: sigA:%u, sigB:%u\n", sigA, sigB);
-
     if (sigA == lastSigA)
     {
         return;
@@ -45,9 +43,8 @@ void calculateAngle(encoderStruct* encoder)
         }
     }
 
-    // counter = counter % ENCODER_RESOLUTION;
     angle = ((360 * counter) / ENCODER_RESOLUTION);
-    // printf("calculateAngle: \tsigA:%u, sigB:%u, angle:%d\n", sigA, sigB, angle);
+    // printf("calculateAngle: \t\tsigA:%u, sigB:%u, angle:%d\n\n", sigA, sigB, angle);
 
     pthread_mutex_lock(encoder->encoderMutex);
     encoder->lastSigA = sigA;

@@ -70,8 +70,8 @@ sensorStruct sensor4 = {-1, 0, &sensorMutex4, &sensorBarrier4};
 sensorStruct* sensors[MAX_NUMBER_OF_SENSORS] = {&sensor1, &sensor2, &sensor3, &sensor4};
 
 /* WHEELS - max speed 20 [cm/s] */
-motorStruct leftWheel = {0, 0, 0, 255, 0, &leftWheelMutex};
-motorStruct rightWheel = {0, 0, 0, 255, 0, &rightWheelMutex};
+motorStruct leftWheel = {0, 0, 0, 0, 0, &leftWheelMutex};
+motorStruct rightWheel = {0, 0, 0, 0, 0, &rightWheelMutex};
 motorStruct* wheels[2] = {&leftWheel, &rightWheel};
 
 /* ENCODERS */
@@ -81,7 +81,7 @@ encoderStruct* encoders[2] = {&leftEncoder, &rightEncoder};
 
 /* ROBOT */
 robotStruct robot = {0,
-					 22, 420, 0, 
+					 22, 420, 90, 
 					 sensors, 
 					 wheels, 
 					 encoders, 
@@ -203,7 +203,7 @@ int createRobotThreads()
 	createEncodersThreads();
 	createRoomIdUpdaterThread();
 	createGarbagesUpdaterThread();
-	// createRobotInputReaderThread();
+	createRobotInputReaderThread();
 	createSensorsOutputWriterThread();
 	createEncodersOutputWriterThread();
 }
@@ -375,6 +375,7 @@ void *tClockHandlerThreadFunc(void *cookie)
 		clockCounter++;
 		return;
 	}
+	pthread_barrier_wait(&wheelsPwmInputReaderBarrier);
 	pthread_barrier_wait(&robotMainPeriodicFuncBarrier);
 	clockCounter = 0;
 }

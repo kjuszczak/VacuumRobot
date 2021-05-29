@@ -160,8 +160,9 @@ void* tReadSensorsOutputThreadFunc(void *cookie)
         // Enter critcal section
         while (sem_wait(sensorsOutputDataThread->sensorsOutputThread->spoolSem)) {}
 
+        // printf("tReadSensorsOutputThreadFunc: controller\n");
         // Send data
-        memcpy(sensorsOutputDataThread->sensorsOutputThread->sensorsOutputData, &buffer, sizeof(sensorsOutputStruct));
+        memcpy(sensorsOutputDataThread->controller->sensors, sensorsOutputDataThread->sensorsOutputThread->sensorsOutputData->sensors, sizeof(sensorsOutputStruct));
 
         // Leave critical section
         sem_post(sensorsOutputDataThread->sensorsOutputThread->mutexSem);
@@ -190,11 +191,10 @@ void* tReadEncodersOutputThreadFunc(void *cookie)
         // Receive data
         memcpy(&buffer, encodersOutputDataThread->encodersOutputThread->encodersOutputData, sizeof(encodersOutputStruct));
 
-        sem_post(encodersOutputDataThread->encodersOutputThread->mutexSem);
-
         updateControllerEncoders(&buffer, encodersOutputDataThread->controller);
-
         pthread_barrier_wait(encodersOutputDataThread->controller->encodersCalculationBarrier);
+
+        sem_post(encodersOutputDataThread->encodersOutputThread->mutexSem);
 
         // printf("tReadEncodersOutputThreadFunc read: \tleftWheelSigA:%u, leftWheelSigB:%u, rightWheelSigA:%u, rightWheelSigB:%u, leftWheelAngle:%d, rightWheelAngle:%d\n\n",
         //     buffer.leftEncoderSigA,

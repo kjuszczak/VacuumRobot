@@ -3,7 +3,7 @@
 
 #include "../../../pscommon/robotInput.h"
 
-int writeWheelsPwmToFifo(wheelsPwmInputStruct* wheelsPwm);
+int writeWheelsPwmToFifo(int leftWheelPwm, int rightWheelPwm);
 void* tWriteWheelsPwmInputThreadFunc(void *cookie);
 
 #endif // CONTROLLER_ROBOT_INPUT_H

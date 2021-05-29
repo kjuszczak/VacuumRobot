@@ -169,6 +169,7 @@ void* tWriteSensorsOutputThreadFunc(void *cookie)
         // Enter critcal section
         while (sem_wait(sensorsOutputDataThread->sensorsOutputThread->mutexSem)) {}
 
+        // printf("tWriteSensorsOutputThreadFunc: simulation\n");
         // Send data
         memcpy(sensorsOutputDataThread->sensorsOutputThread->sensorsOutputData, &buffer, sizeof(sensorsOutputStruct));
 
@@ -204,12 +205,6 @@ void* tWriteEncodersOutputThreadFunc(void *cookie)
 
 	    // Increment the spool
         sem_post(encodersOutputDataThread->encodersOutputThread->spoolSem);
-
-        // printf("tWriteEncodersOutputThreadFunc write: \tleftWheelSigA:%u, leftWheelSigB:%u, leftWheelAngle:%d\n",
-        //     buffer.leftEncoderSigA,
-        //     buffer.leftEncoderSigB,
-        //     encodersOutputDataThread->robot->wheels[0]->angle);
-        //     // encodersOutputDataThread->robot->wheels[0]->angle);
 
         pthread_barrier_wait(encodersOutputDataThread->robot->encodersUpdaterBarrier);
     }

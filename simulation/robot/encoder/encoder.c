@@ -11,46 +11,33 @@
 
 void updateEncoder(encoderStruct* enc, int angle, pthread_barrier_t* outputBarrier)
 {
-    // printf("updateEncoder: start\n");
-    // printf("updateEncoder: start: sigA:%u, sigB:%u, angle:%d, lastAngle:%d\n", enc->sigA, enc->sigB, angle, enc->lastAngle);
-
     uint8_t isIncrementing = ((angle == 0) && (enc->lastAngle == 359)) ? 1 : ((angle - enc->lastAngle) == 1);
     uint8_t isDecrementing = ((angle == 0) && (enc->lastAngle == -359)) ? -1 : ((enc->lastAngle - angle) == 1);
 
-    if (isIncrementing)
-    // if (angle == 1)
+    if (enc->updateSignals && enc->mode == INCREMENT_MODE)
     {
-        // printf("updateEncoder: angle:%d, lastAngle:%d, (angle - enc->lastAngle):%d\n", 
-        //         angle,
-        //         enc->lastAngle,
-        //         angle - enc->lastAngle);
-        incrementEncoder(enc);
-        enc->lastAngle = angle;
-        enc->updateSignals = TRUE;
-    }
-    else if (isDecrementing)
-    // else if (angle == -1)
-    {
-        // printf("updateEncoder: angle:%d, lastAngle:%d, (enc->lastAngle - angle):%d\n",
-        //         angle,
-        //         enc->lastAngle,
-        //         enc->lastAngle - angle);
-        decrementEncoder(enc);
-        enc->lastAngle = angle;
-        enc->updateSignals = TRUE;
-    }
-    else if (enc->updateSignals && enc->mode == INCREMENT_MODE)
-    {
-        incrementEncoder(enc);
+        updateSigB(enc, &enc->sigB);
         enc->updateSignals = FALSE;
     }
     else if (enc->updateSignals && enc->mode == DECREMENT_MODE)
     {
-        decrementEncoder(enc);
+        updateSigB(enc, &enc->sigB);
         enc->updateSignals = FALSE;
     }
-    // printf("updateEncoder: end\n");
-    // pthread_barrier_wait(outputBarrier);
+    else if (isIncrementing)
+    {
+        incrementEncoder(enc);
+        enc->lastAngle = angle;
+        enc->updateSignals = TRUE;
+        // printf("updateEncoder: increment: \tsigA:%u, sigB:%u, angle:%d\n", enc->sigA, enc->sigB, angle);
+    }
+    else if (isDecrementing)
+    {
+        decrementEncoder(enc);
+        enc->lastAngle = angle;
+        enc->updateSignals = TRUE;
+        // printf("updateEncoder: decrement: \tsigA:%u, sigB:%u, angle:%d\n", enc->sigA, enc->sigB, angle);
+    }
     // printf("updateEncoder: end: \tsigA:%u, sigB:%u, angle:%d\n", enc->sigA, enc->sigB, angle);
 }
 
@@ -70,15 +57,10 @@ void updateSigB(encoderStruct* enc, uint8_t* sigB)
 
 void incrementEncoder(encoderStruct* enc)
 {
-    pthread_mutex_lock(enc->encoderMutex);
-    uint8_t tempSigA = enc->sigA;
-    uint8_t tempSigB = enc->sigB;
-    pthread_mutex_unlock(enc->encoderMutex);
-
     if (!enc->mode)
     {
-        tempSigA = TRUE;
-        tempSigB = FALSE;
+        enc->sigA = TRUE;
+        enc->sigB = FALSE;
         enc->counter = 1;
         enc->mode = INCREMENT_MODE;
     }
@@ -86,57 +68,32 @@ void incrementEncoder(encoderStruct* enc)
     {
         if(!enc->counter)
         {
-            tempSigA = !tempSigA;
-            tempSigB = !tempSigB;
+            enc->sigA = !enc->sigA;
+            enc->sigB = !enc->sigB;
         }
         enc->counter = enc->counter ? 0 : 1;
         enc->mode = INCREMENT_MODE;
     }
     else
     {
-        // if (!tempSigB && !tempSigA)
-        // {
-        //     tempSigA = 1;  
-        // }
-        // else if (!tempSigB && tempSigA)
-        // {
-        //     tempSigA = 1;
-        // }
-        // else if (tempSigB && tempSigA)
-        // {
-        //     tempSigA = 0;
-        // }
-        // else if (tempSigB && !tempSigA)
-        // {
-        //     tempSigA = 0;
-        // }
-        if (!tempSigB)
+        if (!enc->sigB)
         {
-            tempSigA = TRUE;  
+            enc->sigA = TRUE;  
         }
         else
         {
-            tempSigA = FALSE;
+            enc->sigA = FALSE;
         }
-        updateSigB(enc, &tempSigB);
+        updateSigB(enc, &enc->sigB);
     }
-    pthread_mutex_lock(enc->encoderMutex);
-    enc->sigA = tempSigA;
-    enc->sigB = tempSigB;
-    pthread_mutex_unlock(enc->encoderMutex);
 }
 
 void decrementEncoder(encoderStruct* enc)
 {
-    pthread_mutex_lock(enc->encoderMutex);
-    uint8_t tempSigA = enc->sigA;
-    uint8_t tempSigB = enc->sigB;
-    pthread_mutex_unlock(enc->encoderMutex);
-
     if (!enc->mode)
     {
-        tempSigA = TRUE;
-        tempSigB = TRUE;
+        enc->sigA = TRUE;
+        enc->sigB = TRUE;
         enc->counter = 1;
         enc->mode = DECREMENT_MODE;
     }
@@ -144,26 +101,22 @@ void decrementEncoder(encoderStruct* enc)
     {
         if(!enc->counter)
         {
-            tempSigA = !tempSigA;
-            tempSigB = !tempSigB;
+            enc->sigA = !enc->sigA;
+            enc->sigB = !enc->sigB;
         }
         enc->counter = enc->counter ? 0 : 1;
         enc->mode = DECREMENT_MODE;    
     }
     else
     {
-        if (!tempSigB)
+        if (!enc->sigB)
         {
-            tempSigA = FALSE;  
+            enc->sigA = FALSE;  
         }
         else
         {
-            tempSigA = TRUE;
+            enc->sigA = TRUE;
         }
-        updateSigB(enc, &tempSigB);
+        updateSigB(enc, &enc->sigB);
     }
-    pthread_mutex_lock(enc->encoderMutex);
-    enc->sigA = tempSigA;
-    enc->sigB = tempSigB;
-    pthread_mutex_unlock(enc->encoderMutex);
 }

@@ -29,9 +29,11 @@ pthread_barrier_t sensorsOutputReaderBarrier;
 /* Global variables */
 encoderStruct leftWheel = {0, 0, 0, 0, 0, &leftWheelEncoderMutex, &leftWheelEncoderBarrier, &encodersCalculationBarrier};
 encoderStruct rightWheel = {0, 0, 0, 0, 0, &rightWheelEncoderMutex, &rightWheelEncoderBarrier, &encodersCalculationBarrier};
+double sensors[4] = {0, 0, 0, 0};
 
 controllerStruct controller = {&leftWheel,
                                &rightWheel,
+							   &sensors,
                                &mainPeriodicFuncBarrier,
                                &encodersOutputReaderBarrier,
 							   &encodersCalculationBarrier,

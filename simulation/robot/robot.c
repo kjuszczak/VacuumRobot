@@ -11,6 +11,7 @@ int lol = 1;
 int robotOutput = 1;
 
 uint8_t timerCounter = 0;
+uint8_t timerVisCounter = 0;
 
 void* tUpdateSensorsThreadFunc(void *cookie)
 {
@@ -118,13 +119,10 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
 
         if (timerCounter)
         {
-            mq_send(*robotThread->outputMQueue, (char *)&robotOutput, sizeof(int), 0);
             timerCounter = 0;
             continue;
         }
         timerCounter++;
-
-        // pthread_barrier_wait(robotThread->robot->wheelsPwmInputReaderBarrier);
 
         calculateVelocity(robotThread->robot->wheels[0], WHEEL_DIAMATER_M, MAX_ANGULAR_VELOCITY);
         calculateMotorAngle(robotThread->robot->wheels[0], SIMULATION_SAMPLE_TIME);
@@ -139,6 +137,14 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
 
         pthread_barrier_wait(robotThread->robot->roomIdUpdaterBarrier);
         pthread_barrier_wait(robotThread->robot->garbageUpdaterBarrier);
+
+        if (timerVisCounter < 10)
+        {
+            timerVisCounter++;
+            continue;
+        }
+        mq_send(*robotThread->outputMQueue, (char *)&robotOutput, sizeof(int), 0);
+        timerVisCounter = 0;
     }
 }
 

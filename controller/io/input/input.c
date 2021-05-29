@@ -9,9 +9,13 @@
 #include <fcntl.h>
 #include <string.h>
 
-int writeWheelsPwmToFifo(wheelsPwmInputStruct* wheelsPwm)
+wheelsPwmInputStruct wheelsPwm = {0, 0};
+
+int writeWheelsPwmToFifo(int leftWheelPwm, int rightWheelPwm)
 {
     int fd;
+    wheelsPwm.leftWheelPwm = leftWheelPwm;
+    wheelsPwm.rightWheelPwm = rightWheelPwm;
 
     // Open FIFO file
     if ((fd = open("wheels_pwm_fifo", O_WRONLY)) == -1) {
@@ -20,7 +24,7 @@ int writeWheelsPwmToFifo(wheelsPwmInputStruct* wheelsPwm)
     }
 
     // Write a message to FIFO
-    if (write(fd, wheelsPwm, sizeof (wheelsPwmInputStruct)) != sizeof (wheelsPwmInputStruct)) {
+    if (write(fd, &wheelsPwm, sizeof (wheelsPwmInputStruct)) != sizeof (wheelsPwmInputStruct)) {
         fprintf(stderr, "Cannot write to FIFO.\n" ); 
         return 0; 
     }

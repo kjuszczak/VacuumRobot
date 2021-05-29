@@ -11,6 +11,7 @@ typedef struct controller
 {
     encoderStruct* leftWheel;
     encoderStruct* rightWheel;
+    double* sensors;
     pthread_barrier_t* mainPeriodicFuncBarrier;
     pthread_barrier_t* encodersOutputReaderBarrier;
     pthread_barrier_t* encodersCalculationBarrier;

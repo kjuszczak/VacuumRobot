@@ -33,11 +33,15 @@ double sensors[4] = {0, 0, 0, 0};
 
 controllerStruct controller = {&leftWheel,
                                &rightWheel,
-							   &sensors,
+							   sensors,
+							   0,
+							   0,
+							   NULL,
                                &mainPeriodicFuncBarrier,
                                &encodersOutputReaderBarrier,
 							   &encodersCalculationBarrier,
 							   &sensorsOutputReaderBarrier};
+
 /* THREADS VARIABLES */
 encodersOutputThreadStruct encoderOutputThreadData;
 encodersOutputControllerProcessStruct encoderOutputThread = {&encoderOutputThreadData, &controller};

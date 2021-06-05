@@ -28,13 +28,13 @@ int createWheelsPwmInputFifo()
 {
     // Create FIFO
     if ((mkfifo ("wheels_pwm_fifo", 0664) == -1) && (errno != EEXIST)) {
-        fprintf(stderr, "Cannot create FIFO.\n" ); 
+        fprintf(stderr, "[SIMULINK] Cannot create FIFO.\n" ); 
         return 0; 
     }
 
     // Open FIFO file
     if ((fdWheelsPwm = open ("wheels_pwm_fifo", O_RDONLY)) == -1) {
-        fprintf(stderr, "Cannot open FIFO.\n" ); 
+        fprintf(stderr, "[SIMULINK] Cannot open FIFO.\n" ); 
         return 0; 
     }
 }
@@ -56,8 +56,8 @@ void* tReadWheelsPwmInputThreadFunc(void *cookie)
 
         // Read data from FIFO
         if ((bytesRead = read (fdWheelsPwm, &buffer, sizeof (wheelsPwmInputStruct))) == -1) {
-            fprintf(stderr, "Something is wrong with FIFO.\n" ); 
-            return 0;
+            fprintf(stderr, "[SIMULINK] Cannot read from FIFO.\n" ); 
+            continue;
         }
 
         // If there is message print it

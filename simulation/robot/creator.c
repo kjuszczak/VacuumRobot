@@ -81,7 +81,7 @@ encoderStruct* encoders[2] = {&leftEncoder, &rightEncoder};
 
 /* ROBOT */
 robotStruct robot = {0,
-					 22, 420, 90, 
+					 850, 420, 90, 
 					 sensors, 
 					 wheels, 
 					 encoders, 

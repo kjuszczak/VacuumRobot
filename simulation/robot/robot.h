@@ -71,5 +71,6 @@ void* tSendEncoderMeasurementThreadFunc(void *cookie);
 /* leftWheelVelocity, rightWheelVelocity - [cm/s], time - [s] */
 void updateRobotParameters(robotStruct* robot, double leftWheelVelocity, double rightWheelVelocity, double time);
 void updateSensorsAnglesParameters(robotStruct* robot);
+void roundRobotAngle(robotStruct* robot);
 
 #endif //ROBOT_H

@@ -3,13 +3,14 @@
 #include <stdio.h>
 #include <math.h>
 #include <pthread.h>
+#include <time.h>
 
 #include "../flat/rooms/garbages/garbages.h"
 #include "../io/input/input.h"
 #include "../../pscommon/constants.h"
-int lol = 1;
-int robotOutput = 1;
 
+double roundedRobotAngle = 0;
+int robotOutput = 1;
 uint8_t timerCounter = 0;
 uint8_t timerVisCounter = 0;
 
@@ -104,6 +105,7 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
 {
     robotThreadStruct* robotThread = (robotThreadStruct*)cookie;
     double linearVelocity[2];
+    roundedRobotAngle = robotThread->robot->angle;
 
     for (;;)
     {
@@ -126,7 +128,6 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
 
         calculateVelocity(robotThread->robot->wheels[0], WHEEL_DIAMATER_M, MAX_ANGULAR_VELOCITY);
         calculateMotorAngle(robotThread->robot->wheels[0], SIMULATION_SAMPLE_TIME);
-
         linearVelocity[0] = robotThread->robot->wheels[0]->linearVelocity * 100; // [cm]
         calculateVelocity(robotThread->robot->wheels[1], WHEEL_DIAMATER_M, MAX_ANGULAR_VELOCITY);
         calculateMotorAngle(robotThread->robot->wheels[1], SIMULATION_SAMPLE_TIME);
@@ -138,7 +139,7 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
         pthread_barrier_wait(robotThread->robot->roomIdUpdaterBarrier);
         pthread_barrier_wait(robotThread->robot->garbageUpdaterBarrier);
 
-        if (timerVisCounter < 10)
+        if (timerVisCounter < VISUALIZATION_MAX_COUNTER)
         {
             timerVisCounter++;
             continue;
@@ -148,34 +149,39 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
     }
 }
 
-void updateRobotParameters(robotStruct* robot, double leftWheelVelocity, double rightWheelVelocity, double time)
+void updateRobotParameters(robotStruct* robot, double leftWheelVelocity, double rightWheelVelocity, double step)
 {
     if (robot == NULL)
     {
         fprintf(stderr, "Cannot copy json string to buffer\n");
         return;
     }
+
     if (leftWheelVelocity == rightWheelVelocity)
     {
         pthread_mutex_lock(robot->robotMutex);
-        robot->x += time * leftWheelVelocity * cos(robot->angle * RADIAN_PROP);
-        robot->y += time * leftWheelVelocity * -sin(robot->angle * RADIAN_PROP);
+        robot->angle = roundedRobotAngle == 360 ? 0 : roundedRobotAngle;
+        robot->x += step * leftWheelVelocity * cos(robot->angle * RADIAN_PROP);
+        robot->y += step * leftWheelVelocity * -sin(robot->angle * RADIAN_PROP);
         pthread_mutex_unlock(robot->robotMutex);
     }
     else if (leftWheelVelocity < 0 && rightWheelVelocity > 0)
     {
         pthread_mutex_lock(robot->robotMutex);
-        robot->angle += (time * (250 / (ROBOT_DIAMATER_CM / 2))); // 250 == (rightWheelVelocity - leftWheelVelocity)
-        robot->angle = robot->angle < 360 ? robot->angle : 0;
+        robot->angle += (step * rightWheelVelocity / (ROBOT_DIAMATER_CM / 2)) * DEGREE_PROP;
+        robot->angle = robot->angle < 360 ? robot->angle : robot->angle - 360;
+        roundedRobotAngle = round(robot->angle);
         pthread_mutex_unlock(robot->robotMutex);
     }
     else if (leftWheelVelocity > 0 && rightWheelVelocity < 0)
     {
         pthread_mutex_lock(robot->robotMutex);
-        robot->angle -= time * (250 / (ROBOT_DIAMATER_CM / 2)); // 250 == (leftWheelVelocity - rightWheelVelocity)
-        robot->angle = robot->angle > -360 ? robot->angle : 0;
+        robot->angle -= (step * leftWheelVelocity / (ROBOT_DIAMATER_CM / 2)) * DEGREE_PROP;
+        robot->angle = robot->angle >= 0 ? robot->angle : 360 + robot->angle;
+        roundedRobotAngle = round(robot->angle);
         pthread_mutex_unlock(robot->robotMutex);
     }
+
     // printf("robot->x:%lf, robot->y:%lf, robot->angle:%lf\n", robot->x, robot->y, robot->angle);
 }
 
@@ -187,3 +193,10 @@ void updateSensorsAnglesParameters(robotStruct* robot)
     pthread_mutex_unlock(robot->robotMutex);
     updateAngles(robot->sensors, angle);
 }
+
+// void roundRobotAngle(robotStruct* robot)
+// {
+//     uint8_t sign = robot->angle < 0 ? -1 : 1;
+//     double absValue = abs()
+    
+// }

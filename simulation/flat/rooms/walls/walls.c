@@ -40,5 +40,5 @@ float getDistanceFromWall(const wallsStruct* wallsInRoom, const doorsStruct* doo
         x = robotX + sin((robotAngle - 270) * RADIAN_PROP) * dMin;
         y = robotY + cos((robotAngle - 270) * RADIAN_PROP) * dMin;
     }
-    return isDoorOnWay(doors, x, y) ? -1 : dMin - ROBOT_RADIUS;
+    return isDoorOnWay(doors, x, y) ? -1 : dMin - ROBOT_RADIUS_CM;
 }

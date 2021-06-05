@@ -1,4 +1,6 @@
 #include "motor.h"
+
+#include <math.h>
 #include <stdio.h>
 
 #include "../../pscommon/constants.h"
@@ -15,12 +17,12 @@ void calculateVelocity(motorStruct* motor, double diamater, double maxAngularVel
     int pwm = motor->pwm;
     pthread_mutex_unlock(motor->motorMutex);
 
-    if (pwm == 255)
+    if (pwm == PWM_VALUE)
     {
         motor->angularVelocity = maxAngularVelocity;
         motor->linearVelocity = maxAngularVelocity * (diamater / 2);
     }
-    else if (pwm == -255)
+    else if (pwm == -PWM_VALUE)
     {
         motor->angularVelocity = -maxAngularVelocity;
         motor->linearVelocity = -maxAngularVelocity * (diamater / 2);
@@ -35,7 +37,9 @@ void calculateVelocity(motorStruct* motor, double diamater, double maxAngularVel
 void calculateMotorAngle(motorStruct* motor, double time)
 {
     pthread_mutex_lock(motor->motorMutex);
-    motor->angle += (int)(time * (motor->angularVelocity * DEGREE_PROP));
+    motor->angle += (time * motor->angularVelocity * DEGREE_PROP);
+    motor->angle = trunc(motor->angle);
+    // printf("calculateMotorAngle: angle:%lf, time:%lf, angularVelocity:%lf, DEGREE_PROP:%lf\n", motor->angle, time, motor->angularVelocity, DEGREE_PROP);
     motor->angle = motor->angle < 360 &&  motor->angle > -360? motor->angle : 0;
     pthread_mutex_unlock(motor->motorMutex);
 }

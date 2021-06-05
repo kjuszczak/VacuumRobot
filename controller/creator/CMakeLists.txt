@@ -5,5 +5,7 @@ set(creator_files
         ./controller.c
         ./encoder/encoder.h
         ./encoder/encoder.c
+        ./robot/robot.h
+        ./robot/robot.c
         )
 add_library(creator ${creator_files})

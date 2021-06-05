@@ -1,25 +1,24 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define CLOCK_SAMPLE_TIME 0.001
+#define CLOCK_SAMPLE_TIME               0.0005
+#define SIMULATION_SAMPLE_TIME          0.004       // [s]
+#define SIMULATION_MAX_COUNTER          1
+#define VISUALIZATION_MAX_COUNTER       25
 
-#define CONTROLLER_SAMPLE_TIME 0.001
-#define CONTROLLER_MAX_COUNTER CONTROLLER_SAMPLE_TIME / CLOCK_SAMPLE_TIME
+#define ENCODER_RESOLUTION              360
 
-#define ENCODER_RESOLUTION 360
+#define ROBOT_DIAMATER_CM               38          // [cm]
+#define ROBOT_RADIUS_CM                 19          // [cm]
+#define WHEEL_DIAMATER_M                0.065       // [m]
 
-#define ROBOT_RADIUS 19
+#define PI                              3.14159265
+#define RADIAN_PROP                     PI / 180
+#define DEGREE_PROP                     180 / PI
 
-#define PI 3.14159265
-#define RADIAN_PROP PI / 180
-#define DEGREE_PROP 180 / PI
+#define MAX_ANGULAR_VELOCITY            4.3633232   // [rad/s]
 
-#define MAX_ANGULAR_VELOCITY 6.15       // [rad/s]
-#define ROBOT_DIAMATER_CM 38            // [cm]
-#define WHEEL_DIAMATER_M 0.065          // [m]
-
-#define SIMULATION_SAMPLE_TIME 0.004    // [s]
-#define SIMULATION_MAX_COUNTER (int)((SIMULATION_SAMPLE_TIME / CLOCK_SAMPLE_TIME) / 2)
+#define PWM_VALUE                       255
 
 #define MAX_NUMBERS_OF_GARBAGES_IN_ROOM 5
 

@@ -12,6 +12,9 @@ typedef struct controller
     encoderStruct* leftWheel;
     encoderStruct* rightWheel;
     double* sensors;
+    int leftWheelPwm;
+    int rightWheelPwm;
+    double* rotatingWheelAngle;
     pthread_barrier_t* mainPeriodicFuncBarrier;
     pthread_barrier_t* encodersOutputReaderBarrier;
     pthread_barrier_t* encodersCalculationBarrier;
@@ -20,5 +23,9 @@ typedef struct controller
 
 void *tMainControllerPeriodicThreadFunc(void *cookie);
 void *tEncoderAngleUpdaterThreadFunc(void *cookie);
+
+void driveRobot(controllerStruct* controller);
+uint8_t isDistanceAllowed(double distance);
+uint8_t checkRotating(int leftWheelAngle, int rightWheelAngle);
 
 #endif // CONTROLLER_H

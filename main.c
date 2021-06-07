@@ -7,6 +7,10 @@
 #include <signal.h>
 
 #include "pscommon/constants.h"
+#include "pscommon/logger/logThread.h"
+#include "pscommon/logger/log.h"
+
+const char* component = "MAIN";
 
 pid_t pid_simulation, pid_controller;
 
@@ -17,6 +21,10 @@ int main(int argc, char *argv[])
 {
 	char * robot_simulation[3] = {"./robot_simulation", NULL};
     char * robot_controller[3] = {"./robot_controller", NULL};
+
+    createFile();
+    initLogger(component);
+    LG_INF("Main starts");
 
 	pid_simulation = fork();
 
@@ -41,13 +49,16 @@ int main(int argc, char *argv[])
 	// /* Wait for processes*/
 	while(getc(stdin)=='q') {}
 
+    LG_INF("Main exits");
+
     kill(pid_simulation, SIGRTMIN);
     waitpid(pid_simulation, NULL, 0);
     kill(pid_controller, SIGRTMIN);
     waitpid(pid_controller, NULL, 0);
 
-    printf("Main exits\n");
-    return EXIT_SUCCESS;    
+    system("sudo rm -rf /dev/shm/*");
+
+    return EXIT_SUCCESS;
 }
 
 int createTimer()
@@ -76,7 +87,7 @@ int createTimer()
 
 	/* Create timer */
   	if ((status = timer_create(CLOCK_REALTIME, &timerEvent, &timerVar))) {
-  		fprintf(stderr, "Error creating timer : %d\n", status);
+        LG_ERR("Error creating timer : %d", status);
   		return EXIT_FAILURE;
   	}
 

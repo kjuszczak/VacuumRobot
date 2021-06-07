@@ -3,11 +3,13 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include "../../pscommon/logger/log.h"
+
 uint8_t getCurrentRoomWhereRobotIs(const roomsStruct* rooms, uint16_t x, uint16_t y)
 {
     if (rooms == NULL)
     {
-        fprintf(stderr, "Rooms is NULL\n");
+        LG_ERR("Rooms is NULL");
         return -1;
     }
     for (size_t i = 0; i < rooms->numOfRooms; i++)
@@ -21,6 +23,6 @@ uint8_t getCurrentRoomWhereRobotIs(const roomsStruct* rooms, uint16_t x, uint16_
             return rooms->rooms[i]->id;
         }
     }
-    fprintf(stderr, "There is no room with robot!\n");
+    LG_ERR("There is no room with robot!");
     return -1;
 }

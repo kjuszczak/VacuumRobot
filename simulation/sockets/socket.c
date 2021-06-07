@@ -1,5 +1,7 @@
 #include "socket.h"
 
+#include "../../pscommon/logger/log.h"
+
 int sendFlatJson(tSocketData *socketData)
 {
     char buff[MAXLEN]; 
@@ -10,7 +12,7 @@ int sendFlatJson(tSocketData *socketData)
 	int my_socket = socket(PF_INET, SOCK_DGRAM, 0);
 
 	if (my_socket == -1) {
-		fprintf(stderr, "Cannot create socket\n");
+		LG_WRN("Cannot create socket");
 		return 0;
 	}
 
@@ -23,7 +25,7 @@ int sendFlatJson(tSocketData *socketData)
 
 	if (strcpy(buff, json_object_to_json_string(socketData->jFlatObj)) == NULL)
 	{
-		fprintf(stderr, "Cannot copy json string to buffer\n");
+		LG_WRN("Cannot copy json string to buffer");
 		return 0;
 	}
 	sendto(my_socket, buff, strlen(buff), MSG_CONFIRM, (const struct sockaddr *) &socket_addr, sizeof(socket_addr)); 
@@ -44,7 +46,7 @@ int sendRobotJson(tSocketData *socketData)
 	int my_socket = socket(PF_INET, SOCK_DGRAM, 0);
 
 	if (my_socket == -1) {
-		fprintf(stderr, "Cannot create socket\n");
+		LG_WRN("Cannot create socket");
 		return 0;
 	}
 
@@ -57,7 +59,7 @@ int sendRobotJson(tSocketData *socketData)
 
 	if (strcpy(buff, json_object_to_json_string(socketData->jRobotObj)) == NULL)
 	{
-		fprintf(stderr, "Cannot copy json string to buffer\n");
+		LG_WRN("Cannot copy json string to buffer");
 		return 0;
 	}
 

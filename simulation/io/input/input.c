@@ -9,6 +9,8 @@
 #include <fcntl.h>
 #include <string.h>
 
+#include "../../pscommon/logger/log.h"
+
 int fdWheelsPwm;
 
 void fillBufferWithWheelsPwm(wheelsPwmInputStruct* buffer, robotStruct* robot)
@@ -28,13 +30,13 @@ int createWheelsPwmInputFifo()
 {
     // Create FIFO
     if ((mkfifo ("wheels_pwm_fifo", 0664) == -1) && (errno != EEXIST)) {
-        fprintf(stderr, "[SIMULINK] Cannot create FIFO.\n" ); 
+        LG_ERR("Cannot create FIFO.");
         return 0; 
     }
 
     // Open FIFO file
     if ((fdWheelsPwm = open ("wheels_pwm_fifo", O_RDONLY)) == -1) {
-        fprintf(stderr, "[SIMULINK] Cannot open FIFO.\n" ); 
+        LG_ERR("Cannot open FIFO.");
         return 0; 
     }
 }
@@ -56,7 +58,7 @@ void* tReadWheelsPwmInputThreadFunc(void *cookie)
 
         // Read data from FIFO
         if ((bytesRead = read (fdWheelsPwm, &buffer, sizeof (wheelsPwmInputStruct))) == -1) {
-            fprintf(stderr, "[SIMULINK] Cannot read from FIFO.\n" ); 
+            LG_WRN("Cannot read from FIFO.");
             continue;
         }
 

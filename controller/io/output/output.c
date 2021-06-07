@@ -13,6 +13,7 @@
 
 #include "../../pscommon/constants.h"
 #include "../creator/encoder/encoder.h"
+#include "../../pscommon/logger/log.h"
 
 int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputDataThread)
 {
@@ -20,31 +21,31 @@ int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputD
     
     //  Create mutex semaphore
     if ((sensorsOutputDataThread->mutexSem = sem_open("/sensors-sem-mutex", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        fprintf(stderr, "[CONTROLLER] Cannot create semaphore.\n");
+        LG_ERR("Cannot create semaphore.");
 		return 0;
     }
 
     // Create spool semaphore
     if ((sensorsOutputDataThread->spoolSem = sem_open("/sensors-sem-spool", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        fprintf(stderr, "[CONTROLLER] Cannot create semaphore.\n");
+        LG_ERR("Cannot create semaphore.");
 		return 0;
     }
     
     // Get shared memory 
     if ((fdShm = shm_open("/sensors-shared-mem", O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1) {
-        fprintf(stderr, "[CONTROLLER] Cannot create shared memory.\n");
+        LG_ERR("Cannot create shared memory.");
 		return 0;
     }
 
     //  Truncate share memory
     if (ftruncate(fdShm, sizeof (sensorsOutputStruct)) == -1) {
-        fprintf(stderr, "[CONTROLLER] Cannot truncate shared memory.\n");
+        LG_ERR("Cannot truncate shared memory.");
 		return 0;
     }
 
     // Map shared memory
     if ((sensorsOutputDataThread->sensorsOutputData = mmap(NULL, sizeof (sensorsOutputStruct), PROT_READ | PROT_WRITE, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
-        fprintf(stderr, "[CONTROLLER] Cannot map shared memory.\n");
+        LG_ERR("Cannot map shared memory.");
 		return 0;
     }
 
@@ -57,31 +58,31 @@ int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutp
     
     //  Create mutex semaphore
     if ((encodersOutputDataThread->mutexSem = sem_open("/encoders-sem-mutex", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        fprintf(stderr, "[CONTROLLER] Cannot create semaphore.\n");
+        LG_ERR("Cannot create semaphore.");
 		return 0;
     }
 
     // Create spool semaphore
     if ((encodersOutputDataThread->spoolSem = sem_open("/encoders-sem-spool", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        fprintf(stderr, "[CONTROLLER] Cannot create semaphore.\n");
+        LG_ERR("Cannot create semaphore.");;
 		return 0;
     }
     
     // Get shared memory 
     if ((fdShm = shm_open("/encoders-shared-mem", O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1) {
-        fprintf(stderr, "[CONTROLLER] Cannot create shared memory.\n");
+        LG_ERR("Cannot create shared memory.");
 		return 0;
     }
 
     //  Truncate share memory /*
     if (ftruncate(fdShm, sizeof (encodersOutputStruct)) == -1) {
-        fprintf(stderr, "[CONTROLLER] Cannot truncate shared memory.\n");
+        LG_ERR("Cannot truncate shared memory.");
 		return 0;
     }
 
     // Map shared memory
     if ((encodersOutputDataThread->encodersOutputData = mmap(NULL, sizeof (encodersOutputStruct), PROT_READ, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
-        fprintf(stderr, "[CONTROLLER] Cannot map shared memory.\n");
+        LG_ERR("Cannot map shared memory.");
 		return 0;
     }
 
@@ -92,7 +93,7 @@ int unmapShmForEncoders(encodersOutputThreadStruct* encodersOutputDataThread)
 {
     // Unmap shared memory
     if (munmap(encodersOutputDataThread->encodersOutputData, sizeof (encodersOutputThreadStruct)) == -1) {
-        fprintf(stderr, "[CONTROLLER] Cannot truncate shared memmory.\n");
+        LG_ERR("Cannot unmap shared memmory.");
 		return 0;
     }
     
@@ -110,7 +111,7 @@ int unmapShmForSensors(sensorsOutputThreadStruct* sensorsOutputDataThread)
 {
     // Unmap shared memory
     if (munmap(sensorsOutputDataThread->sensorsOutputData, sizeof (sensorsOutputThreadStruct)) == -1) {
-        fprintf(stderr, "[CONTROLLER] Cannot truncate shared memmory.\n");
+        LG_ERR("Cannot unmap shared memmory.");
 		return 0;
     }
     
@@ -147,7 +148,7 @@ void* tReadSensorsOutputThreadFunc(void *cookie)
 
     if (!createSharedMemoryForSensorsOutput(sensorsOutputDataThread->sensorsOutputThread))
     {
-        fprintf(stderr, "[CONTROLLER] Cannot create robot output writer.\n");
+        LG_ERR("Cannot create robot output writer.");
 		return NULL;
     }
 
@@ -160,7 +161,6 @@ void* tReadSensorsOutputThreadFunc(void *cookie)
         // Enter critcal section
         while (sem_wait(sensorsOutputDataThread->sensorsOutputThread->spoolSem)) {}
 
-        // printf("tReadSensorsOutputThreadFunc: controller\n");
         // Send data
         memcpy(sensorsOutputDataThread->controller->sensors, sensorsOutputDataThread->sensorsOutputThread->sensorsOutputData->sensors, sizeof(sensorsOutputStruct));
 
@@ -176,7 +176,7 @@ void* tReadEncodersOutputThreadFunc(void *cookie)
 
     if (!createSharedMemoryForEncodersOutput(encodersOutputDataThread->encodersOutputThread))
     {
-        fprintf(stderr, "[CONTROLLER] Cannot create robot output reader.\n");
+        LG_ERR("Cannot create robot output reader.");
 		return NULL;
     }
 
@@ -196,7 +196,7 @@ void* tReadEncodersOutputThreadFunc(void *cookie)
 
         sem_post(encodersOutputDataThread->encodersOutputThread->mutexSem);
 
-        // printf("tReadEncodersOutputThreadFunc read: \tleftWheelSigA:%u, leftWheelSigB:%u, rightWheelSigA:%u, rightWheelSigB:%u, leftWheelAngle:%d, rightWheelAngle:%d\n\n",
+        // LG_INF("read: \tleftWheelSigA:%u, leftWheelSigB:%u, rightWheelSigA:%u, rightWheelSigB:%u, leftWheelAngle:%d, rightWheelAngle:%d",
         //     buffer.leftEncoderSigA,
         //     buffer.leftEncoderSigB,
         //     buffer.rightEncoderSigA,

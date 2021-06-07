@@ -29,16 +29,13 @@ void updateEncoder(encoderStruct* enc, int angle, pthread_barrier_t* outputBarri
         incrementEncoder(enc);
         enc->lastAngle = angle;
         enc->updateSignals = TRUE;
-        // printf("updateEncoder: increment: \tsigA:%u, sigB:%u, angle:%d\n", enc->sigA, enc->sigB, angle);
     }
     else if (isDecrementing)
     {
         decrementEncoder(enc);
         enc->lastAngle = angle;
         enc->updateSignals = TRUE;
-        // printf("updateEncoder: decrement: \tsigA:%u, sigB:%u, angle:%d\n", enc->sigA, enc->sigB, angle);
     }
-    // printf("updateEncoder: end: \tsigA:%u, sigB:%u, angle:%d\n", enc->sigA, enc->sigB, angle);
 }
 
 void updateSigB(encoderStruct* enc, uint8_t* sigB)

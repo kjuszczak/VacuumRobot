@@ -1,11 +1,13 @@
 #include "sensor.h"
 #include <stdio.h>
 
+#include "../../pscommon/logger/log.h"
+
 void updateAngles(sensorStruct** sensors, int angle)
 {
     if (sensors == NULL)
     {
-        fprintf(stderr, "Sensor is NULL\n");
+        LG_WRN("Sensor is NULL");
         return;
     }
     int scaledAngle = angle < 0 ? angle + 360 : angle;

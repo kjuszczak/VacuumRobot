@@ -14,6 +14,9 @@
 #include "flat/creator.h"
 #include "robot/creator.h"
 
+#include "../pscommon/logger/log.h"
+#include "../pscommon/logger/logThread.h"
+
 /*
  * Mutex variables
  */
@@ -26,13 +29,16 @@ pthread_mutex_t visUdpMutex = PTHREAD_MUTEX_INITIALIZER;
 json_object* jobjFlat;
 json_object* jobjRobot;
 tSocketData visSocketData;
+
+const char* component = "SIMULATION";
 /******************************************************/
 
 static void exit_handler(int);
 
 int main(int argc, char *argv[])
 {
-	printf("Simulation main\n");
+	initLogger(component);
+	LG_INF("Simulation starts");
 
     /* Create empty signal set to run sigsuspend */
     sigset_t mask;
@@ -50,7 +56,7 @@ int main(int argc, char *argv[])
     /* Register signal handler for SIGRTMIN */
     if (sigaction(SIGRTMIN, &action, NULL) < 0) 
 	{
-        fprintf(stderr, "Cannot register SIGRTMIN handler.\n");
+		LG_ERR("Cannot register SIGRTMIN handler.");
         return -1;
     }
 
@@ -80,6 +86,5 @@ int main(int argc, char *argv[])
 void exit_handler(int sig)
 {
 	clean();
-	printf("Simulation main exits\n");
     exit(EXIT_SUCCESS);
 }

@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "../creator/controller.h"
+#include "../../pscommon/logger/log.h"
 
 wheelsPwmInputStruct wheelsPwm = {0, 0};
 
@@ -21,19 +22,19 @@ int writeWheelsPwmToFifo(int leftWheelPwm, int rightWheelPwm)
 
     // Open FIFO file
     if ((fd = open("wheels_pwm_fifo", O_WRONLY)) == -1) {
-        fprintf(stderr, "[CONTROLLER] Cannot open FIFO.\n" ); 
+        LG_WRN("Cannot open FIFO");
         return 0; 
     }
 
     // Write a message to FIFO
     if (write(fd, &wheelsPwm, sizeof (wheelsPwmInputStruct)) != sizeof (wheelsPwmInputStruct)) {
-        fprintf(stderr, "[CONTROLLER] Cannot write to FIFO.\n" ); 
+        LG_WRN("Cannot write to FIFO");
         return 0; 
     }
 
     // Close FIFO
     if (close(fd) == -1) {
-        fprintf(stderr, "[CONTROLLER] Cannot close FIFO.\n" ); 
+        LG_WRN("Cannot close FIFO.");
         return 0; 
     }   
 }

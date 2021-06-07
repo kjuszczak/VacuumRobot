@@ -44,7 +44,6 @@ void calculateAngle(encoderStruct* encoder)
     }
 
     angle = ((360 * counter) / ENCODER_RESOLUTION);
-    // printf("calculateAngle: \t\tsigA:%u, sigB:%u, angle:%d\n\n", sigA, sigB, angle);
 
     pthread_mutex_lock(encoder->encoderMutex);
     encoder->lastSigA = sigA;

@@ -8,6 +8,8 @@
 #include "encoder/encoder.h"
 #include "robot/robot.h"
 
+#include "../../pscommon/logger/log.h"
+
 #define MIN_DISTANCE        10 // [cm]
 #define FORWARD_DISTANCE    25 // [cm]
 

@@ -10,31 +10,33 @@
 #include <sys/mman.h>
 #include <pthread.h>
 
+#include "../../pscommon/logger/log.h"
+
 int createSharedMemoryForSensorsOutput(sensorsOutputThreadStruct* sensorsOutputDataThread)
 {
     int fdShm;
     
     //  Create mutex semaphore
     if ((sensorsOutputDataThread->mutexSem = sem_open("/sensors-sem-mutex", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        fprintf(stderr, "Cannot create semaphore.\n");
+        LG_ERR("Cannot create semaphore.");
 		return 0;
     }
 
     // Create spool semaphore
     if ((sensorsOutputDataThread->spoolSem = sem_open("/sensors-sem-spool", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        fprintf(stderr, "Cannot create semaphore.\n");
+        LG_ERR("Cannot create semaphore.");
 		return 0;
     }
     
     // Get shared memory 
     if ((fdShm = shm_open("/sensors-shared-mem", O_RDWR | O_CREAT, 0660)) == -1) {
-        fprintf(stderr, "Cannot create shared memory.\n");
+        LG_ERR("Cannot create shared memory.");
 		return 0;
     }
 
     // Map shared memory
     if ((sensorsOutputDataThread->sensorsOutputData = mmap(NULL, sizeof (sensorsOutputStruct), PROT_READ | PROT_WRITE, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
-        fprintf(stderr, "Cannot map shared memory.\n");
+        LG_ERR("Cannot map shared memory.");
 		return 0;
     }
 }
@@ -45,25 +47,25 @@ int createSharedMemoryForEncodersOutput(encodersOutputThreadStruct* encodersOutp
     
     //  Create mutex semaphore
     if ((encodersOutputDataThread->mutexSem = sem_open("/encoders-sem-mutex", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        fprintf(stderr, "Cannot create semaphore.\n");
+        LG_ERR("Cannot create semaphore.");
 		return 0;
     }
 
     // Create spool semaphore
     if ((encodersOutputDataThread->spoolSem = sem_open("/encoders-sem-spool", O_CREAT, 0660, 0)) == SEM_FAILED) {
-        fprintf(stderr, "Cannot create semaphore.\n");
+        LG_ERR("Cannot create semaphore.");
 		return 0;
     }
     
     // Get shared memory 
     if ((fdShm = shm_open("/encoders-shared-mem", O_RDWR | O_CREAT, 0660)) == -1) {
-        fprintf(stderr, "Cannot create shared memory.\n");
+        LG_ERR("Cannot create shared memory.");
 		return 0;
     }
 
     // Map shared memory
     if ((encodersOutputDataThread->encodersOutputData = mmap(NULL, sizeof (encodersOutputStruct), PROT_WRITE, MAP_SHARED, fdShm, 0)) == MAP_FAILED) {
-        fprintf(stderr, "Cannot map shared memory.\n");
+        LG_ERR("Cannot map shared memory.");
 		return 0;
     }
 
@@ -74,7 +76,7 @@ int unmapShmForEncoders(encodersOutputThreadStruct* encodersOutputDataThread)
 {
     // Unmap shared memory
     if (munmap(encodersOutputDataThread->encodersOutputData, sizeof (encodersOutputThreadStruct)) == -1) {
-        fprintf(stderr, "Cannot truncate shared memmory.\n");
+        LG_ERR("Cannot unmap shared memory.");
 		return 0;
     }
     
@@ -92,7 +94,7 @@ int unmapShmForSensors(sensorsOutputThreadStruct* sensorsOutputDataThread)
 {
     // Unmap shared memory
     if (munmap(sensorsOutputDataThread->sensorsOutputData, sizeof (sensorsOutputThreadStruct)) == -1) {
-        fprintf(stderr, "Cannot truncate shared memmory.\n");
+        LG_ERR("Cannot unmap shared memmory.");
 		return 0;
     }
     
@@ -139,7 +141,7 @@ void fillBufferWithEncoders(encodersOutputStruct* buffer, robotStruct* robot)
     int rightWheelAngle = robot->encoders[1]->lastAngle;
     pthread_mutex_unlock(robot->encoders[1]->encoderMutex);
 
-    // printf("tWriteEncodersOutputThreadFunc write: \tleftWheelSigA:%u, leftWheelSigB:%u, rightWheelSigA:%u, rightWheelSigB:%u, leftWheelAngle:%d, rightWheelAngle:%d\n",
+    // LG_INF("write: \tleftWheelSigA:%u, leftWheelSigB:%u, rightWheelSigA:%u, rightWheelSigB:%u, leftWheelAngle:%d, rightWheelAngle:%d",
     //         buffer->leftEncoderSigA,
     //         buffer->leftEncoderSigB,
     //         buffer->rightEncoderSigA,
@@ -155,7 +157,7 @@ void* tWriteSensorsOutputThreadFunc(void *cookie)
 
     if (!createSharedMemoryForSensorsOutput(sensorsOutputDataThread->sensorsOutputThread))
     {
-        fprintf(stderr, "Cannot create robot output writer.\n");
+        LG_ERR("Cannot create robot output writer.");
 		return NULL;
     }
 
@@ -169,7 +171,6 @@ void* tWriteSensorsOutputThreadFunc(void *cookie)
         // Enter critcal section
         while (sem_wait(sensorsOutputDataThread->sensorsOutputThread->mutexSem)) {}
 
-        // printf("tWriteSensorsOutputThreadFunc: simulation\n");
         // Send data
         memcpy(sensorsOutputDataThread->sensorsOutputThread->sensorsOutputData, &buffer, sizeof(sensorsOutputStruct));
 
@@ -185,7 +186,7 @@ void* tWriteEncodersOutputThreadFunc(void *cookie)
 
     if (!createSharedMemoryForEncodersOutput(encodersOutputDataThread->encodersOutputThread))
     {
-        fprintf(stderr, "Cannot create robot output writer.\n");
+        LG_ERR("Cannot create robot output writer.");
 		return NULL;
     }
 

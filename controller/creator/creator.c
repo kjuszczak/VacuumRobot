@@ -9,6 +9,8 @@
 #include "../io/input/input.h"
 #include "../io/output/output.h"
 
+#include "../../pscommon/logger/log.h"
+
 uint8_t clockCounter = 0;
 
 /* Mutex variables */
@@ -90,7 +92,7 @@ int createClockHandler()
     /* Register signal handler for clock manager */
     if (sigaction(SIGRTMIN + 2, &action, NULL) < 0) 
 	{
-        fprintf(stderr, "Cannot register SIGRTMIN handler.\n");
+		LG_ERR("Cannot register SIGRTMIN handler.");
         return -1;
     }
 	return 0;
@@ -173,12 +175,5 @@ void *tClockHandlerThreadFunc(void *cookie)
 	param.sched_priority = sched_get_priority_max(policy);
 	pthread_setschedparam(pthread_self(), policy, &param);
 
-	// if (clockCounter < SIMULATION_MAX_COUNTER)
-	// {
-	// 	clockCounter++;
-	// 	return;
-	// }
-
 	pthread_barrier_wait(&mainPeriodicFuncBarrier);
-	clockCounter = 0;
 }

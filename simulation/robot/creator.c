@@ -12,6 +12,8 @@
 #include "../io/input/input.h"
 #include "../io/output/output.h"
 
+#include "../../pscommon/logger/log.h"
+
 uint8_t clockCounter = 0;
 
 /* Mutex variables */
@@ -130,7 +132,7 @@ void init(tSocketData *socketData, roomsStruct* rooms)
 
 	/* Create Message Queue */
 	if ((outputMQueue = mq_open("/robotOutput", O_CREAT | O_RDWR, 777, &outputMQueueAttr)) == -1) {
-		fprintf(stderr, "Creation of the mqueue failed.\n");
+		LG_ERR("Creation of the mqueue failed.");
 		return;
 	}
 
@@ -139,7 +141,7 @@ void init(tSocketData *socketData, roomsStruct* rooms)
 
 	/* Create Message Queue */
 	if ((encodersOutputMQueue = mq_open("/encodersOutputQueue", O_CREAT | O_RDWR, 777, &encodersOutputMQueueAttr)) == -1) {
-		fprintf(stderr, "Creation of the mqueue failed.\n");
+		LG_ERR("Creation of the mqueue failed.");
 		return;
 	}
 
@@ -189,7 +191,7 @@ int createClockHandler()
     /* Register signal handler for clock manager */
     if (sigaction(SIGRTMIN + 1, &action, NULL) < 0) 
 	{
-        fprintf(stderr, "Cannot register SIGRTMIN handler.\n");
+		LG_ERR("Cannot register SIGRTMIN handler.");
         return -1;
     }
 
@@ -387,7 +389,7 @@ void* tRobotJsonUpdateThreadFunc(void *cookie)
 	for (;;)
 	{
 		/* Wait until something will appears in queue */
-		mq_receive(outputMQueue, (char *)&outputResult, sizeof(int), NULL);
+		while (mq_receive(outputMQueue, (char *)&outputResult, sizeof(int), NULL) == -1) {} // protect for signal interruption
 
 		createRobotJson(&robot, socketVisData->jRobotObj);
 		createGarbageUpdateJson(socketVisData->jRobotObj);

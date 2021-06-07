@@ -4,7 +4,7 @@
 #define CLOCK_SAMPLE_TIME               0.0005
 #define SIMULATION_SAMPLE_TIME          0.004       // [s]
 #define SIMULATION_MAX_COUNTER          1
-#define VISUALIZATION_MAX_COUNTER       25
+#define VISUALIZATION_MAX_COUNTER       10
 
 #define ENCODER_RESOLUTION              360
 

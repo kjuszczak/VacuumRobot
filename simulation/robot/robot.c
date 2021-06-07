@@ -8,6 +8,7 @@
 #include "../flat/rooms/garbages/garbages.h"
 #include "../io/input/input.h"
 #include "../../pscommon/constants.h"
+#include "../../pscommon/logger/log.h"
 
 double roundedRobotAngle = 0;
 int robotOutput = 1;
@@ -145,6 +146,7 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
             continue;
         }
         mq_send(*robotThread->outputMQueue, (char *)&robotOutput, sizeof(int), 0);
+        LG_INF("robot->x:%lf, robot->y:%lf, robot->angle:%lf", robotThread->robot->x, robotThread->robot->y, robotThread->robot->angle);
         timerVisCounter = 0;
     }
 }
@@ -153,7 +155,7 @@ void updateRobotParameters(robotStruct* robot, double leftWheelVelocity, double 
 {
     if (robot == NULL)
     {
-        fprintf(stderr, "Cannot copy json string to buffer\n");
+        LG_WRN("Cannot copy json string to buffer");
         return;
     }
 
@@ -181,8 +183,6 @@ void updateRobotParameters(robotStruct* robot, double leftWheelVelocity, double 
         roundedRobotAngle = round(robot->angle);
         pthread_mutex_unlock(robot->robotMutex);
     }
-
-    // printf("robot->x:%lf, robot->y:%lf, robot->angle:%lf\n", robot->x, robot->y, robot->angle);
 }
 
 void updateSensorsAnglesParameters(robotStruct* robot)
@@ -193,10 +193,3 @@ void updateSensorsAnglesParameters(robotStruct* robot)
     pthread_mutex_unlock(robot->robotMutex);
     updateAngles(robot->sensors, angle);
 }
-
-// void roundRobotAngle(robotStruct* robot)
-// {
-//     uint8_t sign = robot->angle < 0 ? -1 : 1;
-//     double absValue = abs()
-    
-// }

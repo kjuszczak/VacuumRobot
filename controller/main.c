@@ -4,11 +4,17 @@
 
 #include "creator/creator.h"
 
+#include "../pscommon/logger/logThread.h"
+#include "../pscommon/logger/log.h"
+
+const char* component = "CONTROLLER";
+
 static void exit_handler(int);
 
 int main(int argc, char *argv[])
 {
-    printf("Controller main\n");
+    initLogger(component);
+    LG_INF("Controller starts");
 
     /* Create empty signal set to run sigsuspend */
     sigset_t mask;
@@ -26,7 +32,7 @@ int main(int argc, char *argv[])
     /* Register signal handler for SIGINT */
     if (sigaction(SIGRTMIN, &action, NULL) < 0)
     {
-        fprintf(stderr, "Cannot register SIGRTMIN handler.\n");
+        LG_ERR("Cannot register SIGRTMIN handler.");
         return -1;
     }
 
@@ -44,6 +50,5 @@ int main(int argc, char *argv[])
 void exit_handler(int sig)
 {
     clean();
-    printf("Controller main exits\n");
     exit(EXIT_SUCCESS);
 }

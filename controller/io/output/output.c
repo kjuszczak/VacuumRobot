@@ -195,13 +195,5 @@ void* tReadEncodersOutputThreadFunc(void *cookie)
         pthread_barrier_wait(encodersOutputDataThread->controller->encodersCalculationBarrier);
 
         sem_post(encodersOutputDataThread->encodersOutputThread->mutexSem);
-
-        // LG_INF("read: \tleftWheelSigA:%u, leftWheelSigB:%u, rightWheelSigA:%u, rightWheelSigB:%u, leftWheelAngle:%d, rightWheelAngle:%d",
-        //     buffer.leftEncoderSigA,
-        //     buffer.leftEncoderSigB,
-        //     buffer.rightEncoderSigA,
-        //     buffer.rightEncoderSigB,
-        //     encodersOutputDataThread->controller->leftWheel->angle,
-        //     encodersOutputDataThread->controller->rightWheel->angle);
     }
 }

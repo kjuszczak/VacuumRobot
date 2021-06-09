@@ -21,6 +21,7 @@ void* tUpdateSensorsThreadFunc(void *cookie)
 
     for (;;)
     {
+        /* Wait for periodic call */
         pthread_barrier_wait(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorBarrier);
 
         pthread_mutex_lock(sensorData->robotThread->robot->robotMutex);
@@ -43,6 +44,7 @@ void* tUpdateSensorsThreadFunc(void *cookie)
         sensorData->robotThread->robot->sensors[sensorData->sensorId]->distanceFromObject = distanceFromObject;
         pthread_mutex_unlock(sensorData->robotThread->robot->sensors[sensorData->sensorId]->sensorMutex);
 
+        /* Activate output writer */
         pthread_barrier_wait(sensorData->robotThread->robot->sensorsOutputWriterBarrier);
     }
 }
@@ -53,8 +55,10 @@ void* tUpdateEncoderThreadFunc(void *cookie)
 
     for (;;)
     {
+        /* Wait for periodic call */
         pthread_barrier_wait(encoderData->robotThread->robot->encoders[encoderData->encoderId]->encoderBarrier);
         
+        /* Make sure that encoder output is set*/
         pthread_barrier_wait(encoderData->robotThread->robot->encodersUpdaterBarrier);
 
         pthread_mutex_lock(encoderData->robotThread->robot->wheels[encoderData->encoderId]->motorMutex);
@@ -66,6 +70,7 @@ void* tUpdateEncoderThreadFunc(void *cookie)
             angle,
             encoderData->robotThread->robot->encodersOutputWriterBarrier);
 
+        /* Activate output writer */
         pthread_barrier_wait(encoderData->robotThread->robot->encodersOutputWriterBarrier);
     }
 }
@@ -112,13 +117,9 @@ void* tMainRobotPeriodicThreadFunc(void *cookie)
     {
         pthread_barrier_wait(robotThread->robot->robotMainPeriodicFuncBarrier);
 
-        pthread_barrier_wait(robotThread->robot->encoders[0]->encoderBarrier);
-        pthread_barrier_wait(robotThread->robot->encoders[1]->encoderBarrier);
-
-        pthread_barrier_wait(robotThread->robot->sensors[0]->sensorBarrier);
-        pthread_barrier_wait(robotThread->robot->sensors[1]->sensorBarrier);
-        pthread_barrier_wait(robotThread->robot->sensors[2]->sensorBarrier);
-        pthread_barrier_wait(robotThread->robot->sensors[3]->sensorBarrier);
+        /* OUTPUT */
+        pthread_barrier_wait(robotThread->robot->encodersPeriodicBarrier);
+        pthread_barrier_wait(robotThread->robot->sensorsPeriodicBarrier);
 
         if (timerCounter)
         {

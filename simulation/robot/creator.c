@@ -34,20 +34,17 @@ pthread_mutex_t rightEncoderMutex = PTHREAD_MUTEX_INITIALIZER;
 /* Threads barriers */
 pthread_barrier_t robotMainPeriodicFuncBarrier;
 
-pthread_barrier_t sensorBarrier1;
-pthread_barrier_t sensorBarrier2;
-pthread_barrier_t sensorBarrier3;
-pthread_barrier_t sensorBarrier4;
-
 pthread_barrier_t roomIdUpdaterBarrier;
 
+pthread_barrier_t encodersPeriodicBarrier;
 pthread_barrier_t leftEncoderBarrier;
 pthread_barrier_t rightEncoderBarrier;
 
+pthread_barrier_t sensorsPeriodicBarrier;
 pthread_barrier_t sensorsOutputWriterBarrier;
 
-pthread_barrier_t encodersOutputWriterBarrier;
 pthread_barrier_t encodersUpdaterBarrier;
+pthread_barrier_t encodersOutputWriterBarrier;
 
 pthread_barrier_t wheelsPwmInputReaderBarrier;
 
@@ -56,7 +53,7 @@ pthread_barrier_t garbageUpdaterBarrier;
 
 /* Mqueue variable */
 mqd_t outputMQueue;
-mqd_t encodersOutputMQueue;
+
 /* Mqueue attributes structure */
 struct mq_attr outputMQueueAttr;
 struct mq_attr encodersOutputMQueueAttr;
@@ -65,10 +62,10 @@ struct mq_attr encodersOutputMQueueAttr;
 /* Global variables */
 
 /* SENSORS */
-sensorStruct sensor1 = {-1, 0, &sensorMutex1, &sensorBarrier1};
-sensorStruct sensor2 = {-1, 0, &sensorMutex2, &sensorBarrier2};
-sensorStruct sensor3 = {-1, 0, &sensorMutex3, &sensorBarrier3};
-sensorStruct sensor4 = {-1, 0, &sensorMutex4, &sensorBarrier4};
+sensorStruct sensor1 = {-1, 0, &sensorMutex1, &sensorsPeriodicBarrier};
+sensorStruct sensor2 = {-1, 0, &sensorMutex2, &sensorsPeriodicBarrier};
+sensorStruct sensor3 = {-1, 0, &sensorMutex3, &sensorsPeriodicBarrier};
+sensorStruct sensor4 = {-1, 0, &sensorMutex4, &sensorsPeriodicBarrier};
 sensorStruct* sensors[MAX_NUMBER_OF_SENSORS] = {&sensor1, &sensor2, &sensor3, &sensor4};
 
 /* WHEELS - max speed 20 [cm/s] */
@@ -77,8 +74,8 @@ motorStruct rightWheel = {0, 0, 0, 0, 0, &rightWheelMutex};
 motorStruct* wheels[2] = {&leftWheel, &rightWheel};
 
 /* ENCODERS */
-encoderStruct leftEncoder = {0, 0, 0, 0, 0, 0, &leftEncoderMutex, &leftEncoderBarrier};
-encoderStruct rightEncoder = {0, 0, 0, 0, 0, 0, &rightEncoderMutex, &rightEncoderBarrier};
+encoderStruct leftEncoder = {0, 0, 0, 0, 0, 0, &leftEncoderMutex, &encodersPeriodicBarrier};
+encoderStruct rightEncoder = {0, 0, 0, 0, 0, 0, &rightEncoderMutex, &encodersPeriodicBarrier};
 encoderStruct* encoders[2] = {&leftEncoder, &rightEncoder};
 
 /* ROBOT */
@@ -90,9 +87,11 @@ robotStruct robot = {0,
 					 &robotUdpMutex,
 					 &robotMainPeriodicFuncBarrier,
 					 &roomIdUpdaterBarrier,
+					 &sensorsPeriodicBarrier,
 					 &sensorsOutputWriterBarrier,
-					 &encodersOutputWriterBarrier,
+					 &encodersPeriodicBarrier,
 					 &encodersUpdaterBarrier,
+					 &encodersOutputWriterBarrier,
 					 &wheelsPwmInputReaderBarrier,
 					 &garbageUpdaterBarrier};
 
@@ -139,27 +138,16 @@ void init(tSocketData *socketData, roomsStruct* rooms)
 	encodersOutputMQueueAttr.mq_maxmsg = 128;
 	encodersOutputMQueueAttr.mq_msgsize = sizeof(int);
 
-	/* Create Message Queue */
-	if ((encodersOutputMQueue = mq_open("/encodersOutputQueue", O_CREAT | O_RDWR, 777, &encodersOutputMQueueAttr)) == -1) {
-		LG_ERR("Creation of the mqueue failed.");
-		return;
-	}
-
 	/* Initialize barrier */
 	pthread_barrier_init(&robotMainPeriodicFuncBarrier, NULL, 2);
-	for (size_t i = 0; i < MAX_NUMBER_OF_SENSORS; i++)
-	{
-		pthread_barrier_init(sensors[i]->sensorBarrier, NULL, 2);
-	}
 	pthread_barrier_init(&roomIdUpdaterBarrier, NULL, 2);
-	for (size_t i = 0; i < 2; i++)
-	{
-		pthread_barrier_init(encoders[i]->encoderBarrier, NULL, 2);
-	}
-	pthread_barrier_init(&sensorsOutputWriterBarrier, NULL, 5); // 4x sensors
 
-	pthread_barrier_init(&encodersOutputWriterBarrier, NULL, 3); // 2x sensors
-	pthread_barrier_init(&encodersUpdaterBarrier, NULL, 3); // 2x sensors
+	pthread_barrier_init(&sensorsPeriodicBarrier, NULL, 5); 		// 4x sensors
+	pthread_barrier_init(&sensorsOutputWriterBarrier, NULL, 5); 	// 4x sensors
+
+	pthread_barrier_init(&encodersPeriodicBarrier, NULL, 3); 		// 2x encoders
+	pthread_barrier_init(&encodersUpdaterBarrier, NULL, 3); 		// 2x encoders
+	pthread_barrier_init(&encodersOutputWriterBarrier, NULL, 3); 	// 2x encoders
 
 	pthread_barrier_init(&wheelsPwmInputReaderBarrier, NULL, 2);
 	pthread_barrier_init(&garbageUpdaterBarrier, NULL, 2);

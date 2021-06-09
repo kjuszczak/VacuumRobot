@@ -140,14 +140,6 @@ void fillBufferWithEncoders(encodersOutputStruct* buffer, robotStruct* robot)
     buffer->rightEncoderSigB = robot->encoders[1]->sigB;
     int rightWheelAngle = robot->encoders[1]->lastAngle;
     pthread_mutex_unlock(robot->encoders[1]->encoderMutex);
-
-    // LG_INF("write: \tleftWheelSigA:%u, leftWheelSigB:%u, rightWheelSigA:%u, rightWheelSigB:%u, leftWheelAngle:%d, rightWheelAngle:%d",
-    //         buffer->leftEncoderSigA,
-    //         buffer->leftEncoderSigB,
-    //         buffer->rightEncoderSigA,
-    //         buffer->rightEncoderSigB,
-    //         leftWheelAngle,
-    //         rightWheelAngle);
 }
 
 void* tWriteSensorsOutputThreadFunc(void *cookie)

@@ -11,7 +11,7 @@
 #include "../../pscommon/logger/log.h"
 
 #define MIN_DISTANCE        10 // [cm]
-#define FORWARD_DISTANCE    25 // [cm]
+#define FORWARD_DISTANCE    20 // [cm]
 
 #define NO_ROTATION         0
 #define TURNING_BACK        1
@@ -53,7 +53,7 @@ uint8_t lastRotation = NO_ROTATION;
 void *tMainControllerPeriodicThreadFunc(void *cookie)
 {
     controllerStruct* controller = (controllerStruct*)cookie;
-    startRotating(180);
+
     for (;;)
     {
         pthread_barrier_wait(controller->mainPeriodicFuncBarrier);
@@ -113,6 +113,7 @@ void driveRobot(controllerStruct* controller)
 
     if (isDistanceAllowed(controller->sensors[2]) && (lastRotation != RIGHT))
     {
+        LG_INF("Start turning right");
         controller->leftWheelPwm = PWM_VALUE;
         controller->rightWheelPwm = -PWM_VALUE;
         isRightRotating = 1;
@@ -125,6 +126,7 @@ void driveRobot(controllerStruct* controller)
 
     if (isDistanceAllowed(controller->sensors[3]) && (lastRotation != LEFT))
     {
+        LG_INF("Start turning left");
         controller->leftWheelPwm = -PWM_VALUE;
         controller->rightWheelPwm = PWM_VALUE;
         isLeftRotating = 1;
@@ -145,12 +147,14 @@ void driveRobot(controllerStruct* controller)
 
     if (isDistanceAllowed(controller->sensors[1]))
     {
+        LG_INF("Turning back");
         controller->leftWheelPwm = -PWM_VALUE;
         controller->rightWheelPwm = -PWM_VALUE;
         isBackwardDriving = 1;
         return;
     }
 
+    LG_INF("Stop wheels");
     controller->leftWheelPwm = 0;
     controller->rightWheelPwm = 0;
 }

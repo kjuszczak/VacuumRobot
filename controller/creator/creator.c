@@ -56,7 +56,6 @@ void init()
 {
     /* Initialize barrier */
 	pthread_barrier_init(&mainPeriodicFuncBarrier, NULL, 2);
-
     pthread_barrier_init(&leftWheelEncoderBarrier, NULL, 2);
     pthread_barrier_init(&rightWheelEncoderBarrier, NULL, 2);
     pthread_barrier_init(&encodersOutputReaderBarrier, NULL, 2);

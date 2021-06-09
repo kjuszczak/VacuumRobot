@@ -14,6 +14,9 @@ const char* component = "MAIN";
 
 pid_t pid_simulation, pid_controller;
 
+static void exit_handler(int);
+void clean();
+
 int createTimer();
 void* tClockManagerThreadFunc(void *cookie);
 
@@ -21,6 +24,19 @@ int main(int argc, char *argv[])
 {
 	char * robot_simulation[3] = {"./robot_simulation", NULL};
     char * robot_controller[3] = {"./robot_controller", NULL};
+
+    /* Prepare sigaction struct for handler */
+    struct sigaction action;
+    action.sa_handler = exit_handler;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+
+    /* Register signal handler for SIGINT */
+    if (sigaction(SIGINT, &action, NULL) < 0)
+    {
+        LG_ERR("Cannot register SIGINT handler.");
+        return -1;
+    }
 
     createFile();
     initLogger(component);
@@ -49,15 +65,7 @@ int main(int argc, char *argv[])
 	// /* Wait for processes*/
 	while(getc(stdin)=='q') {}
 
-    LG_INF("Main exits");
-
-    kill(pid_simulation, SIGRTMIN);
-    waitpid(pid_simulation, NULL, 0);
-    kill(pid_controller, SIGRTMIN);
-    waitpid(pid_controller, NULL, 0);
-
-    system("sudo rm -rf /dev/shm/*");
-
+    clean();
     return EXIT_SUCCESS;
 }
 
@@ -107,4 +115,23 @@ void* tClockManagerThreadFunc(void *cookie)
 {
     kill(pid_controller, SIGRTMIN + 2);
     kill(pid_simulation, SIGRTMIN + 1);
+}
+
+/* Exit signal handler function */
+void exit_handler(int sig)
+{
+    clean();
+    exit(EXIT_SUCCESS);
+}
+
+void clean()
+{
+    LG_INF("Main exits");
+
+    kill(pid_simulation, SIGRTMIN);
+    waitpid(pid_simulation, NULL, 0);
+    kill(pid_controller, SIGRTMIN);
+    waitpid(pid_controller, NULL, 0);
+
+    system("sudo rm -rf /dev/shm/*");
 }

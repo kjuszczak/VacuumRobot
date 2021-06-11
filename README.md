@@ -1,6 +1,10 @@
 # VacuumRobot
 Project for KSCR. Controller and simulation. 
 
+# Requirements
+- python3
+- pygame - pip install pygame
+
 # Build project
 . ./build_script.sh
 

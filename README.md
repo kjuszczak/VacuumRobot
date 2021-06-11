@@ -2,6 +2,8 @@
 Project for KSCR. Controller and simulation. 
 
 # Requirements
+- cmake
+- libjson-c-dev - sudo apt install libjson-c-dev
 - python3
 - pygame - pip install pygame
 
